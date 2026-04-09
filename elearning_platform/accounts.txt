@@ -1,0 +1,38 @@
+Platform Mock Accounts
+========================================
+Admin:
+- admin / admin123
+
+Students (Password for all: password123):
+- student_1 (student1@example.com)
+- student_2 (student2@example.com)
+- student_3 (student3@example.com)
+- student_4 (student4@example.com)
+- student_5 (student5@example.com)
+- student_6 (student6@example.com)
+- student_7 (student7@example.com)
+- student_8 (student8@example.com)
+- student_9 (student9@example.com)
+- student_10 (student10@example.com)
+- student_11 (student11@example.com)
+- student_12 (student12@example.com)
+- student_13 (student13@example.com)
+- student_14 (student14@example.com)
+- student_15 (student15@example.com)
+- student_16 (student16@example.com)
+- student_17 (student17@example.com)
+- student_18 (student18@example.com)
+- student_19 (student19@example.com)
+- student_20 (student20@example.com)
+
+Teachers (Password for all: password123):
+- teacher_1 (teacher1@example.com)
+- teacher_2 (teacher2@example.com)
+- teacher_3 (teacher3@example.com)
+- teacher_4 (teacher4@example.com)
+- teacher_5 (teacher5@example.com)
+- teacher_6 (teacher6@example.com)
+- teacher_7 (teacher7@example.com)
+- teacher_8 (teacher8@example.com)
+- teacher_9 (teacher9@example.com)
+- teacher_10 (teacher10@example.com)

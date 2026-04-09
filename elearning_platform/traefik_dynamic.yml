@@ -1,0 +1,44 @@
+http:
+  routers:
+    auth-api:
+      rule: "PathPrefix(`/api/auth`)"
+      service: "auth-service"
+      priority: 10
+    course-api:
+      rule: "PathPrefix(`/api/courses`)"
+      service: "course-service"
+      priority: 10
+    enroll-api:
+      rule: "PathPrefix(`/api/enroll`)"
+      service: "enrollment-service"
+      priority: 10
+    quiz-api:
+      rule: "PathPrefix(`/api/quizzes`)"
+      service: "quiz-service"
+      priority: 10
+    frontend:
+      rule: "PathPrefix(`/`)"
+      service: "frontend-srv"
+      priority: 1
+
+  services:
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth-service:8001"
+    course-service:
+      loadBalancer:
+        servers:
+          - url: "http://course-service:8002"
+    enrollment-service:
+      loadBalancer:
+        servers:
+          - url: "http://enrollment-service:8003"
+    quiz-service:
+      loadBalancer:
+        servers:
+          - url: "http://quiz-service:8004"
+    frontend-srv:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:80"

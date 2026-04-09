@@ -1,0 +1,208 @@
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=true"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080" # Traefik dashboard
+    volumes:
+      - "./traefik_dynamic.yml:/etc/traefik/dynamic.yml:ro"
+    networks:
+      - elearning_net
+    depends_on:
+      - consul
+
+  consul:
+    image: hashicorp/consul:latest
+    command: "agent -dev -client 0.0.0.0"
+    ports:
+      - "8500:8500"
+    networks:
+      - elearning_net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - elearning_net
+
+  auth-service:
+    build: ./auth_service
+    volumes:
+      - ./auth_service:/app
+      - ./auth_service/db.sqlite3:/app/db.sqlite3
+    ports:
+      - "8001:8001"
+    env_file: ./auth_service/.env
+    environment:
+      - PORT=8001
+      - CONSUL_HOST=consul
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=PathPrefix(`/api/auth`)"
+      - "traefik.http.routers.auth.priority=10"
+      - "traefik.http.services.auth.loadbalancer.server.port=8001"
+    networks:
+      - elearning_net
+    depends_on:
+      - traefik
+      - consul
+
+  course-service:
+    build: ./course_service
+    volumes:
+      - ./course_service:/app
+      - ./course_service/media:/app/media
+      - ./course_service/db.sqlite3:/app/db.sqlite3
+    ports:
+      - "8002:8002"
+    env_file: ./course_service/.env
+    environment:
+      - PORT=8002
+      - CONSUL_HOST=consul
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.course.rule=PathPrefix(`/api/courses`)"
+      - "traefik.http.routers.course.priority=10"
+      - "traefik.http.services.course.loadbalancer.server.port=8002"
+    networks:
+      - elearning_net
+    depends_on:
+      - traefik
+      - consul
+
+  enrollment-service:
+    build: ./enrollment_service
+    volumes:
+      - ./enrollment_service:/app
+      - ./enrollment_service/db.sqlite3:/app/db.sqlite3
+    ports:
+      - "8003:8003"
+    env_file: ./enrollment_service/.env
+    environment:
+      - PORT=8003
+      - CONSUL_HOST=consul
+      - RABBITMQ_HOST=rabbitmq
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.enrollment.rule=PathPrefix(`/api/enroll`)"
+      - "traefik.http.routers.enrollment.priority=10"
+      - "traefik.http.services.enrollment.loadbalancer.server.port=8003"
+      - "traefik.consul_registration.id=enrollment-service-1"
+      - "traefik.consul_registration.service.name=enrollment-service"
+      - "traefik.consul_registration.service.port=8003"
+      - "traefik.consul_registration.service.address=enrollment-service"
+    networks:
+      - elearning_net
+    depends_on:
+      - traefik
+      - consul
+      - rabbitmq
+
+  enrollment-worker:
+    build: ./enrollment_service
+    volumes:
+      - ./enrollment_service:/app
+      - ./enrollment_service/db.sqlite3:/app/db.sqlite3
+    env_file: ./enrollment_service/.env
+    command: python manage.py run_rabbitmq_consumer
+    environment:
+      - CONSUL_HOST=consul
+      - RABBITMQ_HOST=rabbitmq
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    networks:
+      - elearning_net
+    depends_on:
+      - consul
+      - rabbitmq
+
+  notification-service:
+    build: ./notification_service
+    volumes:
+      - ./notification_service:/app
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    networks:
+      - elearning_net
+    depends_on:
+      - rabbitmq
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    networks:
+      - elearning_net
+    depends_on:
+      - traefik
+
+  quiz-service:
+    build: ./quiz_service
+    volumes:
+      - ./quiz_service:/app
+      - ./quiz_service/db.sqlite3:/app/db.sqlite3
+
+    env_file: ./quiz_service/.env
+    environment:
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - RABBITMQ_HOST=rabbitmq
+      - PYTHONUNBUFFERED=1
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.quiz.rule=PathPrefix(`/api/quizzes`)"
+      - "traefik.http.routers.quiz.priority=10"
+      - "traefik.http.services.quiz.loadbalancer.server.port=8004"
+      - "traefik.http.routers.quiz.service=quiz"
+      - "traefik.consul_registration.id=quiz-service-1"
+      - "traefik.consul_registration.service.name=quiz-service"
+      - "traefik.consul_registration.service.port=8004"
+      - "traefik.consul_registration.service.address=quiz-service"
+    networks:
+      - elearning_net
+    depends_on:
+      - consul
+      - rabbitmq
+
+  quiz-worker:
+    build: ./quiz_service
+    volumes:
+      - ./quiz_service:/app
+      - ./quiz_service/db.sqlite3:/app/db.sqlite3
+    env_file: ./quiz_service/.env
+    command: python manage.py run_rabbitmq_consumer
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    networks:
+      - elearning_net
+    depends_on:
+      - rabbitmq
+
+networks:
+
+  elearning_net:
+    driver: bridge
