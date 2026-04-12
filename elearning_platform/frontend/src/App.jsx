@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   LogOut,
   User,
@@ -21,7 +21,8 @@ import {
   Edit,
   LayoutDashboard,
   BarChart3,
-  Users
+  Users,
+  Settings
 } from 'lucide-react';
 
 import './App.css';
@@ -88,6 +89,9 @@ function App() {
   const [newQuiz, setNewQuiz] = useState({ title: '', description: '', passingScore: 70 });
   const [addingQuestionToQuiz, setAddingQuestionToQuiz] = useState(null);
   const [newQuestion, setNewQuestion] = useState({ text: '', choices_attributes: [{text: '', is_correct: true}, {text: '', is_correct: false}] });
+  const [userProfile, setUserProfile] = useState(null);
+  const [profilePicFile, setProfilePicFile] = useState(null);
+  const [bioInput, setBioInput] = useState('');
   const [message, setMessage] = useState(null);
 
   const [msgType, setMsgType] = useState('success');
@@ -98,6 +102,29 @@ function App() {
     setTimeout(() => setMessage(null), 4000);
   };
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownRef]);
+
+  useEffect(() => {
+    if (token && !userProfile) {
+        // Slight delay to ensure state synchronization during login flow
+        const timer = setTimeout(() => {
+            fetchUserProfile(token);
+        }, 100);
+        return () => clearTimeout(timer);
+    }
+  }, [token, userProfile]);
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user_id');
@@ -105,6 +132,8 @@ function App() {
     setToken(null);
     setUserId(null);
     setUserRole('student');
+    setUserProfile(null);
+    setProfilePicFile(null);
     setView('login');
     showToast("Logged out successfully");
   };
@@ -160,6 +189,54 @@ function App() {
       }
     } catch (err) {
       showToast("Connection error.", "error");
+    }
+  };
+
+  const fetchUserProfile = async (authToken) => {
+    try {
+      const res = await fetch('/api/auth/profile/me/', {
+        headers: { 'Authorization': `Bearer ${authToken || token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserProfile(data);
+        setBioInput(data.bio || '');
+      }
+    } catch (err) {
+      console.error("Failed to fetch profile");
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    const formData = new FormData();
+    formData.append('bio', bioInput);
+    if (profilePicFile) {
+        formData.append('profile_picture', profilePicFile);
+    }
+
+    try {
+        const res = await fetch('/api/auth/profile/me/', {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setUserProfile(data);
+            showToast("Profile updated successfully!");
+            setProfilePicFile(null);
+        } else {
+            const errorData = await res.json();
+            // Handle nested error objects (like { profile_picture: ["Upload a valid image..."] })
+            const errorMsg = typeof errorData === 'object' 
+                ? Object.values(errorData).flat().join(', ') 
+                : (errorData.detail || "Failed to update profile.");
+            showToast(errorMsg, "error");
+        }
+    } catch (err) {
+        showToast("Error connecting to server.", "error");
     }
   };
 
@@ -830,7 +907,6 @@ function App() {
             {userRole === 'student' ? (
               <>
                 <button onClick={() => setView('courses')} className={`btn btn-ghost ${view === 'courses' ? 'active' : ''}`}>Catalog</button>
-                <button onClick={() => { setView('my-courses'); fetchMyCourses(); }} className={`btn btn-ghost ${view === 'my-courses' ? 'active' : ''}`}>My Learning</button>
               </>
             ) : (
               <>
@@ -843,15 +919,53 @@ function App() {
               </>
             )}
 
-            {userRole === 'admin' && (
-              <button onClick={() => { setView('admin-dash'); setAdminSubView('overview'); fetchAdminStats(); }} className={`btn btn-ghost ${view === 'admin-dash' ? 'active' : ''}`}>Admin Portal</button>
-            )}
-            <span className="user-badge" style={{ background: userRole === 'instructor' ? '#ede9fe' : '#f1f5f9', color: userRole === 'instructor' ? '#6d28d9' : '#64748b' }}>
-              {userRole.charAt(0) + userRole.slice(1)}
-            </span>
-            <button onClick={logout} className="btn btn-ghost" title="Logout">
-              <LogOut size={20} />
-            </button>
+            <div ref={dropdownRef} className="profile-dropdown-container">
+              <div 
+                className={`profile-avatar ${dropdownOpen ? 'open' : ''}`}
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              >
+                {userProfile?.profile_picture ? (
+                    <img src={userProfile.profile_picture} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                    <User size={20} />
+                )}
+              </div>
+
+              {dropdownOpen && (
+                <div className="profile-dropdown-menu">
+                  <div style={{ padding: '0.75rem 1.25rem', background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                    <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{username || 'Logged In User'}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{userRole} Account</p>
+                  </div>
+                  
+                  <button onClick={() => { setView('profile'); setDropdownOpen(false); }} className="dropdown-item">
+                    <User size={16} /> Profile
+                  </button>
+                  
+                  {userRole === 'student' && (
+                    <button onClick={() => { setView('my-courses'); fetchMyCourses(); setDropdownOpen(false); }} className="dropdown-item">
+                      <BookOpen size={16} /> My Learning
+                    </button>
+                  )}
+
+                  {userRole === 'admin' && (
+                    <button onClick={() => { setView('admin-dash'); setAdminSubView('overview'); fetchAdminStats(); setDropdownOpen(false); }} className="dropdown-item">
+                      <LayoutDashboard size={16} /> Admin Dashboard
+                    </button>
+                  )}
+
+                  <button onClick={() => { setView('settings'); setDropdownOpen(false); }} className="dropdown-item">
+                    <Settings size={16} /> Settings
+                  </button>
+
+                  <div className="dropdown-divider"></div>
+
+                  <button onClick={() => { logout(); setDropdownOpen(false); }} className="dropdown-item logout">
+                    <LogOut size={16} /> Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </nav>
@@ -1211,12 +1325,43 @@ function App() {
 
         {view === 'courses' && (
           <div className="content-wrapper" style={{ width: '100%' }}>
-            <div className="section-header" style={{ marginBottom: '2rem' }}>
-              <div>
-                <h1>Course Catalog</h1>
-                <p className="text-muted">Browse academic programs and enroll in curriculum sections.</p>
+            
+            {userRole === 'student' && (
+              <div className="landing-hero" style={{
+                background: 'linear-gradient(135deg, var(--primary) 0%, #1e1b4b 100%)',
+                borderRadius: '1rem',
+                padding: '4rem 2rem',
+                marginBottom: '3rem',
+                color: 'white',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                boxShadow: '0 10px 25px -5px rgba(79, 70, 229, 0.4)'
+              }}>
+                <GraduationCap size={56} style={{ marginBottom: '1.5rem', opacity: 0.9 }} />
+                <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', fontWeight: 800 }}>Welcome Back, Learner!</h1>
+                <p style={{ fontSize: '1.1rem', maxWidth: '600px', marginBottom: '2rem', opacity: 0.9 }}>
+                  Ready to continue your educational journey? Review your current progress or discover exciting new academic programs tailored for your specialization.
+                </p>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button onClick={() => { setView('my-courses'); fetchMyCourses(); }} className="btn" style={{ background: 'white', color: 'var(--primary)', padding: '0.85rem 2rem', fontWeight: 600, fontSize: '1rem', border: 'none' }}>
+                    Check My Courses
+                  </button>
+                  <button onClick={() => document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' })} className="btn" style={{ background: 'transparent', border: '2px solid rgba(255,255,255,0.7)', color: 'white', padding: '0.85rem 2rem', fontWeight: 600, fontSize: '1rem' }}>
+                    Browse Courses
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            <div id="catalog-section" style={{ paddingTop: userRole === 'student' ? '1rem' : '0' }}>
+              <div className="section-header" style={{ marginBottom: '2rem' }}>
+                <div>
+                  <h1>Course Catalog</h1>
+                  <p className="text-muted">Browse academic programs and enroll in curriculum sections.</p>
+                </div>
+              </div>
 
             <div className="filter-bar lms-card" style={{ padding: '1rem', marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <div className="search-input" style={{ flex: 2, minWidth: '250px', position: 'relative' }}>
@@ -1347,6 +1492,135 @@ function App() {
                 </button>
               </div>
             )}
+            </div>
+          </div>
+        )}
+
+        {view === 'profile' && (
+          <div className="content-wrapper" style={{ width: '100%', maxWidth: '800px' }}>
+            <div className="lms-card profile-card" style={{ padding: '3rem' }}>
+              <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                    <div style={{ width: '150px', height: '150px', borderRadius: '1rem', background: '#f8fafc', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    {userProfile?.profile_picture ? (
+                        <img src={userProfile.profile_picture} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                        <User size={80} color="var(--text-muted)" />
+                    )}
+                    </div>
+                    <span className="badge" style={{ position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%)', padding: '0.4rem 1rem' }}>
+                        {userRole.toUpperCase()}
+                    </span>
+                </div>
+                
+                <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <h1 style={{ marginBottom: '0.25rem' }}>{userProfile?.username || 'User'}</h1>
+                            <p className="text-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <FileText size={16} /> Joined {userProfile?.date_joined ? new Date(userProfile.date_joined).toLocaleDateString() : 'Recently'}
+                            </p>
+                        </div>
+                        <button onClick={() => setView('settings')} className="btn btn-ghost" style={{ border: '1px solid var(--border)' }}>
+                            <Edit size={16} /> Edit Profile
+                        </button>
+                    </div>
+                    
+                    <div style={{ marginTop: '2rem' }}>
+                        <h4 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>About Me</h4>
+                        <p style={{ lineHeight: '1.6', color: 'var(--text)' }}>
+                            {userProfile?.bio || "This user hasn't written a bio yet."}
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '2rem', marginTop: '2.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+                        <div>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Email Address</p>
+                            <p style={{ fontWeight: 600 }}>{userProfile?.email || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Last Login</p>
+                            <p style={{ fontWeight: 600 }}>{userProfile?.last_login ? new Date(userProfile.last_login).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
+                    <button 
+                        onClick={() => setView(userRole === 'instructor' ? 'instructor-dash' : 'courses')} 
+                        className="btn btn-primary"
+                        style={{ padding: '0.75rem 3rem' }}
+                    >
+                        Return to Dashboard
+                    </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {view === 'settings' && (
+          <div className="content-wrapper" style={{ width: '100%', maxWidth: '800px' }}>
+            <div className="lms-card" style={{ padding: '3rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
+                <Settings size={32} color="var(--primary)" />
+                <h1 style={{ margin: 0 }}>Account Settings</h1>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                {/* Profile Picture Upload Section */}
+                <div style={{ padding: '2rem', border: '1px solid var(--border)', borderRadius: '1rem', background: '#f8fafc' }}>
+                  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'white', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        {profilePicFile ? (
+                            <img src={URL.createObjectURL(profilePicFile)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : userProfile?.profile_picture ? (
+                            <img src={userProfile.profile_picture} alt="Current" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <User size={32} color="var(--text-muted)" />
+                        )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Profile Picture</h3>
+                        <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>JPG, PNG or GIF. Max size of 2MB.</p>
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            id="pfp-upload"
+                            onChange={(e) => setProfilePicFile(e.target.files[0])}
+                            style={{ display: 'none' }} 
+                        />
+                        <label htmlFor="pfp-upload" className="btn btn-ghost" style={{ border: '1px solid var(--border)', background: 'white', display: 'inline-flex', cursor: 'pointer' }}>
+                            Choose New File
+                        </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bio/Info Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Biography</label>
+                        <textarea 
+                            value={bioInput}
+                            onChange={(e) => setBioInput(e.target.value)}
+                            placeholder="Tell us a bit about your educational journey..."
+                            rows={4}
+                            style={{ width: '100%', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border)', fontFamily: 'inherit' }}
+                        />
+                    </div>
+                </div>
+
+                <div className="dropdown-divider" style={{ margin: '1rem 0' }}></div>
+
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                    <button onClick={() => setView('profile')} className="btn btn-ghost">Cancel</button>
+                    <button onClick={handleUpdateProfile} className="btn btn-primary" style={{ minWidth: '150px' }}>
+                        Save Changes
+                    </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

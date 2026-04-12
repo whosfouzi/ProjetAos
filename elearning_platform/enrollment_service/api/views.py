@@ -96,8 +96,8 @@ class AdminEnrollmentListView(APIView):
                 
             course_info = courses_map.get(enroll.course_id, {"title": f"Course {enroll.course_id}"})
             
-            # Calculate progress
-            progress_items = Progress.objects.filter(enrollment=enroll)
+            # Calculate progress using student/course ID for persistence
+            progress_items = Progress.objects.filter(student_id=enroll.student_id, course_id=enroll.course_id)
             total = progress_items.count()
             completed = progress_items.filter(completed=True).count()
             percentage = round((completed / total * 100), 1) if total > 0 else 0
@@ -158,8 +158,9 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Already enrolled'}, status=status.HTTP_400_BAD_REQUEST)
 
         enrollment = Enrollment.objects.create(student_id=student_id, course_id=course_id)
-
-        # Create progress entries for each chapter
+        
+        # PERSISTENCE LOGIC: Only create progress entries if they don't already exist
+        # This preserves previous progress if a student re-enrolls
         try:
             chapters_response = requests.get(
                 f"{settings.COURSE_SERVICE_URL}/api/courses/{course_id}/chapters/",
@@ -169,14 +170,18 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
             if chapters_response.status_code == 200:
                 chapters = chapters_response.json()
                 for chapter in chapters:
-                    Progress.objects.create(
-                        enrollment=enrollment,
+                    Progress.objects.get_or_create(
+                        student_id=student_id,
+                        course_id=course_id,
                         chapter_id=chapter['id'],
-                        viewed=False,
-                        quiz_passed=False,
-                        completed=False
+                        defaults={
+                            'viewed': False,
+                            'quiz_passed': False,
+                            'completed': False
+                        }
                     )
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to initialize/restore progress: {e}")
             pass
 
         serializer = self.get_serializer(enrollment)
@@ -185,7 +190,8 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def progress(self, request, pk=None):
         enrollment = self.get_object()
-        progress = Progress.objects.filter(enrollment=enrollment)
+        # Query progress by student/course ID to handle history persistence
+        progress = Progress.objects.filter(student_id=enrollment.student_id, course_id=enrollment.course_id)
 
         total_chapters = progress.count()
         completed_chapters = progress.filter(completed=True).count()
@@ -225,8 +231,9 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
                     course = response.json()
                     course['enrollment_id'] = enrollment.id
                     course['enrolled_at'] = enrollment.enrolled_at
-
-                    progress = Progress.objects.filter(enrollment=enrollment)
+ 
+                    # Progress linked to student/course ID for persistence
+                    progress = Progress.objects.filter(student_id=enrollment.student_id, course_id=enrollment.course_id)
                     completed = progress.filter(completed=True).count()
                     total = progress.count()
                     course['progress_percentage'] = round((completed / total * 100), 2) if total > 0 else 0
@@ -249,7 +256,7 @@ class ProgressViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Progress.objects.filter(enrollment__student_id=self.request.user.id)
+        return Progress.objects.filter(student_id=self.request.user.id)
 
     @action(detail=False, methods=['post'])
     def mark_viewed(self, request):
@@ -283,7 +290,8 @@ class ProgressViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Enrollment not found'}, status=status.HTTP_404_NOT_FOUND)
 
         progress, created = Progress.objects.get_or_create(
-            enrollment=enrollment,
+            student_id=request.user.id,
+            course_id=enrollment.course_id,
             chapter_id=chapter_id,
             defaults={'viewed': False, 'quiz_passed': False, 'completed': False}
         )
@@ -300,8 +308,8 @@ class ProgressViewSet(viewsets.ModelViewSet):
         
         logger.info(f"Student {request.user.id} viewed chapter {chapter_id}. (Quiz exists: {has_quiz})")
 
-        # Recalculate overall course progress
-        all_progress = Progress.objects.filter(enrollment=enrollment)
+        # Recalculate overall course progress using persistent student/course IDs
+        all_progress = Progress.objects.filter(student_id=request.user.id, course_id=enrollment.course_id)
         completed_count = all_progress.filter(completed=True).count()
         total_count = all_progress.count()
         percentage = round((completed_count / total_count * 100), 2) if total_count > 0 else 0
@@ -336,7 +344,8 @@ class ProgressViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Enrollment not found'}, status=status.HTTP_404_NOT_FOUND)
 
         progress, _ = Progress.objects.get_or_create(
-            enrollment=enrollment,
+            student_id=request.user.id,
+            course_id=enrollment.course_id,
             chapter_id=lesson_id,
             defaults={'viewed': True, 'quiz_passed': False, 'completed': False}
         )
@@ -345,7 +354,7 @@ class ProgressViewSet(viewsets.ModelViewSet):
         progress._recalculate_completion()
         progress.save()
 
-        all_progress = Progress.objects.filter(enrollment=enrollment)
+        all_progress = Progress.objects.filter(student_id=request.user.id, course_id=enrollment.course_id)
         completed = all_progress.filter(completed=True).count()
         total = all_progress.count()
         percentage = round((completed / total * 100), 2) if total > 0 else 0

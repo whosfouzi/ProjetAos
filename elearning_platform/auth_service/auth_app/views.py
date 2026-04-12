@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Q
 from django.utils import timezone
 from datetime import timedelta
@@ -45,6 +46,15 @@ class LoginView(APIView):
             })
         logger.warning(f"Failed login attempt for username: {username}")
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    """Allows a user to view and update their own profile."""
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+    
+    def get_object(self):
+        return self.request.user
 
 # ---------------------------------------------------------
 # Administrative API Views

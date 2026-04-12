@@ -16,6 +16,10 @@ http:
       rule: "PathPrefix(`/api/quizzes`)"
       service: "quiz-service"
       priority: 10
+    media-assets:
+      rule: "PathPrefix(`/media/`)"
+      service: "auth-service"
+      priority: 10
     frontend:
       rule: "PathPrefix(`/`)"
       service: "frontend-srv"

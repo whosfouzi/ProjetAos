@@ -29,7 +29,8 @@ class Enrollment(models.Model):
 
 
 class Progress(models.Model):
-    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='progress')
+    student_id = models.IntegerField()
+    course_id = models.IntegerField()
     chapter_id = models.IntegerField()
     viewed = models.BooleanField(default=False)
     viewed_at = models.DateTimeField(null=True, blank=True)
@@ -38,9 +39,10 @@ class Progress(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        unique_together = ['enrollment', 'chapter_id']
+        unique_together = ['student_id', 'course_id', 'chapter_id']
         indexes = [
-            models.Index(fields=['enrollment', 'completed']),
+            models.Index(fields=['student_id', 'course_id']),
+            models.Index(fields=['completed']),
         ]
 
     def __str__(self):

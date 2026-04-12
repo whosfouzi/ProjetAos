@@ -12,5 +12,5 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 class ProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Progress
-        fields = ['id', 'enrollment', 'chapter_id', 'viewed', 'quiz_passed', 'completed', 'completed_at', 'viewed_at']
+        fields = ['id', 'student_id', 'course_id', 'chapter_id', 'viewed', 'quiz_passed', 'completed', 'completed_at', 'viewed_at']
         read_only_fields = ['id', 'completed_at', 'viewed_at']
