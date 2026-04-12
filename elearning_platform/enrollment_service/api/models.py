@@ -1,3 +1,4 @@
+from django.db import migrations, models
 from django.db import models
 from django.utils import timezone
 
@@ -46,7 +47,7 @@ class Progress(models.Model):
         ]
 
     def __str__(self):
-        return f"Progress: {self.enrollment} - Chapter {self.chapter_id}: {'Done' if self.completed else 'In Progress'}"
+        return f"Progress: Student {self.student_id} - Course {self.course_id} - Chapter {self.chapter_id}: {'Done' if self.completed else 'In Progress'}"
 
     def mark_viewed(self):
         if not self.viewed:
@@ -69,4 +70,3 @@ class Progress(models.Model):
         elif self.viewed:
             # Viewed but no quiz required — mark as complete (caller sets quiz_passed=True when no quiz)
             pass  # quiz_passed controls this
-
