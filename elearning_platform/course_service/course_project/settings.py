@@ -48,6 +48,9 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 import threading
 
+def register_consul():
+    port = int(os.environ.get('PORT', 8002))
+    consul_host = os.environ.get('CONSUL_HOST', 'consul')
     service_ip = os.environ.get('SERVICE_IP', socket.gethostbyname(socket.gethostname()))
     try:
         c = consul.Consul(host=consul_host, port=8500)
