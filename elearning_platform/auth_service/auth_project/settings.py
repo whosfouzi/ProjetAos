@@ -61,16 +61,21 @@ import threading
 def register_consul():
     port = int(os.environ.get('PORT', 8001))
     consul_host = os.environ.get('CONSUL_HOST', 'consul')
-    # Use a thread to wait a moment if needed, but since Consul is already up, we just try
+    service_ip = os.environ.get('SERVICE_IP', socket.gethostbyname(socket.gethostname()))
     try:
         c = consul.Consul(host=consul_host, port=8500)
         c.agent.service.register(
             'auth-service',
             service_id=f'auth_service_{port}',
             port=port,
-            address=socket.gethostbyname(socket.gethostname())
+            address=service_ip,
+            tags=[
+                "traefik.enable=true",
+                "traefik.http.routers.auth.rule=PathPrefix(`/api/auth`) || PathPrefix(`/media/`)",
+                "traefik.http.routers.auth.priority=10",
+            ]
         )
-        print("Registered with Consul")
+        print(f"Registered with Consul at {service_ip}:{port}")
     except Exception as e:
         print(f"Failed to register with Consul: {e}")
 

@@ -5,6 +5,9 @@ services:
       - "--api.insecure=true"
       - "--providers.file.filename=/etc/traefik/dynamic.yml"
       - "--entrypoints.web.address=:80"
+      - "--providers.consulcatalog=true"
+      - "--providers.consulcatalog.endpoint.address=consul:8500"
+      - "--providers.consulcatalog.exposedByDefault=false"
     ports:
       - "80:80"
       - "8080:8080" # Traefik dashboard
@@ -44,7 +47,8 @@ services:
     env_file: ./auth_service/.env
     environment:
       - PORT=8001
-      - CONSUL_HOST=consul
+      - CONSUL_HOST=${CORE_IP:-consul}
+      - SERVICE_IP=${SERVICE_IP:-auth-service}
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - PYTHONUNBUFFERED=1
     labels:
@@ -69,7 +73,8 @@ services:
     env_file: ./course_service/.env
     environment:
       - PORT=8002
-      - CONSUL_HOST=consul
+      - CONSUL_HOST=${CORE_IP:-consul}
+      - SERVICE_IP=${SERVICE_IP:-course-service}
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - PYTHONUNBUFFERED=1
     labels:
@@ -93,8 +98,9 @@ services:
     env_file: ./enrollment_service/.env
     environment:
       - PORT=8003
-      - CONSUL_HOST=consul
-      - RABBITMQ_HOST=rabbitmq
+      - CONSUL_HOST=${CORE_IP:-consul}
+      - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
+      - SERVICE_IP=${SERVICE_IP:-enrollment-service}
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - PYTHONUNBUFFERED=1
     labels:
@@ -167,7 +173,9 @@ services:
     env_file: ./quiz_service/.env
     environment:
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
-      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
+      - CONSUL_HOST=${CORE_IP:-consul}
+      - SERVICE_IP=${SERVICE_IP:-quiz-service}
       - PYTHONUNBUFFERED=1
 
     labels:
