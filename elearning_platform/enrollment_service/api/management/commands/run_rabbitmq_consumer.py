@@ -56,7 +56,8 @@ class Command(BaseCommand):
                     # 1. Update the Chapter Progress
                     if chapter_id:
                         progress, created = Progress.objects.get_or_create(
-                            enrollment=enrollment,
+                            student_id=user_id,
+                            course_id=course_id,
                             chapter_id=chapter_id,
                             defaults={'viewed': False, 'quiz_passed': False, 'completed': False}
                         )
@@ -64,7 +65,7 @@ class Command(BaseCommand):
                         print(f"Chapter {chapter_id} marked as passed for User {user_id}")
                     
                     # 2. Recalculate Overall Course Completion
-                    all_progress = Progress.objects.filter(enrollment=enrollment)
+                    all_progress = Progress.objects.filter(student_id=user_id, course_id=course_id)
                     completed_chapters = all_progress.filter(completed=True).count()
                     total_chapters = all_progress.count()
                     

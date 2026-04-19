@@ -3,7 +3,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-key-for-development-only-123456')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-test-key-shared-1234567890')
 
 DEBUG = True
 
@@ -95,7 +95,7 @@ def register_consul():
     consul_host = os.environ.get('CONSUL_HOST', 'consul')
     service_ip = os.environ.get('SERVICE_IP', socket.gethostbyname(socket.gethostname()))
     try:
-        c = consul.Consul(host=consul_host, port=8500)
+        c = consul.Consul(host=consul_host, port=8500, socket_timeout=2)
         c.agent.service.register(
             'enrollment-service',
             service_id=f'enrollment_service_{port}',
@@ -107,8 +107,12 @@ def register_consul():
                 "traefik.http.routers.enroll.priority=10",
             ]
         )
-        print(f"Registered with Consul at {service_ip}:{port}")
-    except Exception as e:
-        print(f"Failed to register with Consul: {e}")
+        print(f"Successfully registered 'enrollment-service' with Consul.")
+    except Exception:
+        # Avoid log spam in local dev if Consul is missing
+        if os.environ.get('DEBUG') == 'True':
+            print(f"Consul not reached (enrollment-service). Discovery features disabled.")
+        else:
+            print(f"Warning: Could not register with Consul. Check connection at {consul_host}:8500")
 
 threading.Thread(target=register_consul).start()

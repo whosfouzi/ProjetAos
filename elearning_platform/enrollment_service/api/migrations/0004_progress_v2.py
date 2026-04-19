@@ -37,6 +37,12 @@ class Migration(migrations.Migration):
             unique_together=set(),
         ),
 
+        # 3b. Remove old index referencing enrollment
+        migrations.RemoveIndex(
+            model_name='progress',
+            name='api_progres_enrollm_c1b43d_idx',
+        ),
+
         # 4. Remove enrollment field
         migrations.RemoveField(
             model_name='progress',

@@ -134,6 +134,8 @@ function App() {
     setUserRole('student');
     setUserProfile(null);
     setProfilePicFile(null);
+    setUsername('');
+    setPassword('');
     setView('login');
     showToast("Logged out successfully");
   };
@@ -153,7 +155,7 @@ function App() {
         const data = await res.json();
         showToast(data.username ? data.username[0] : "Registration failed.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Connection error.", "error");
     }
   };
@@ -187,7 +189,7 @@ function App() {
       } else {
         showToast("Invalid credentials.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Connection error.", "error");
     }
   };
@@ -202,7 +204,7 @@ function App() {
         setUserProfile(data);
         setBioInput(data.bio || '');
       }
-    } catch (err) {
+    } catch {
       console.error("Failed to fetch profile");
     }
   };
@@ -235,7 +237,7 @@ function App() {
                 : (errorData.detail || "Failed to update profile.");
             showToast(errorMsg, "error");
         }
-    } catch (err) {
+    } catch {
         showToast("Error connecting to server.", "error");
     }
   };
@@ -249,7 +251,7 @@ function App() {
         const data = await res.json();
         setInstructorCourses(data.results ? data.results : data);
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading your courses.", "error");
     }
   };
@@ -289,7 +291,7 @@ function App() {
         const errorData = await res.json();
         showToast(errorData.detail || "Error saving course.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Error saving course.", "error");
     }
   };
@@ -309,7 +311,7 @@ function App() {
       } else {
         showToast("Failed to delete course. You might not have permission.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Connection error while deleting.", "error");
     }
   };
@@ -324,7 +326,7 @@ function App() {
         setCourseStudents(data);
         setView('course-roster');
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading roster.", "error");
     }
   };
@@ -344,7 +346,7 @@ function App() {
       if (enrollRes.ok) Object.assign(stats, await enrollRes.json());
       
       setAdminStats(stats);
-    } catch (err) {
+    } catch {
       console.error("Failed to load admin stats", err);
     }
   };
@@ -362,7 +364,7 @@ function App() {
       if (res.ok) {
         setAdminUsers(await res.json());
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading user list.", "error");
     }
   };
@@ -375,7 +377,7 @@ function App() {
       if (res.ok) {
         setAdminEnrollments(await res.json());
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading enrollment registry.", "error");
     }
   };
@@ -392,7 +394,7 @@ function App() {
         fetchAdminUsers();
         fetchAdminStats();
       }
-    } catch (err) {
+    } catch {
       showToast("Failed to update role.", "error");
     }
   };
@@ -409,7 +411,7 @@ function App() {
         fetchAdminUsers();
         fetchAdminStats();
       }
-    } catch (err) {
+    } catch {
       showToast("Failed to delete user.", "error");
     }
   };
@@ -427,7 +429,7 @@ function App() {
           setNewCourse(prev => ({ ...prev, specialization: data[0].id }));
         }
       }
-    } catch (err) {
+    } catch {
       console.error("Failed to load specializations", err);
     }
   };
@@ -457,7 +459,7 @@ function App() {
         showToast("Session expired.", "error");
         logout();
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading courses.", "error");
     }
   };
@@ -468,7 +470,7 @@ function App() {
       if (res.ok) {
         setCatalogDomains(await res.json());
       }
-    } catch (err) {
+    } catch {
       console.error("Error fetching domains");
     }
   };
@@ -479,7 +481,7 @@ function App() {
       if (res.ok) {
         setCatalogSpecializations(await res.json());
       }
-    } catch (err) {
+    } catch {
       console.error("Error fetching specializations");
     }
   };
@@ -493,7 +495,7 @@ function App() {
         const data = await res.json();
         setMyCourses(data);
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading my courses.", "error");
     }
   };
@@ -512,7 +514,7 @@ function App() {
         if (enrollmentId) fetchChapterProgress(enrollmentId);
         setView('course-detail');
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading course details.", "error");
     }
   };
@@ -524,7 +526,7 @@ function App() {
         const data = await res.json();
         setChapters(data);
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading chapters.", "error");
     }
   };
@@ -538,7 +540,7 @@ function App() {
         const data = await res.json();
         setChapterProgress(data.progress || []);
       }
-    } catch (err) {
+    } catch {
       console.error("Error fetching chapter progress");
     }
   };
@@ -559,7 +561,7 @@ function App() {
         fetchMyCourses();
         if (data.completed) showToast("Chapter completed! ✓");
       }
-    } catch (err) {
+    } catch {
       showToast("Error updating progress.", "error");
     }
   };
@@ -585,7 +587,7 @@ function App() {
         const err = await res.json();
         showToast(err.detail || "Failed to create chapter.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Connection error.", "error");
     }
   };
@@ -627,7 +629,7 @@ function App() {
         const err = await res.json();
         showToast(err.detail || "Failed to update chapter.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Connection error.", "error");
     }
   };
@@ -657,7 +659,7 @@ function App() {
         const data = await res.json();
         setQuizzes(data);
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading quizzes.", "error");
     }
   };
@@ -702,7 +704,7 @@ function App() {
         setAnswers(prefilledAnswers);
         setView('quiz-taking');
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading quiz details.", "error");
     }
   };
@@ -788,7 +790,7 @@ function App() {
           fetchChapterProgress(selectedCourse.enrollment_id); // Refresh local unit checkmarks
         }
       }
-    } catch (err) {
+    } catch {
       showToast("Error submitting quiz.", "error");
     }
   };
@@ -802,7 +804,7 @@ function App() {
         const data = await res.json();
         setLessonProgress(data.progress);
       }
-    } catch (err) {
+    } catch {
       showToast("Error loading lesson progress.", "error");
     }
   };
@@ -822,7 +824,7 @@ function App() {
         fetchMyCourses();
         showToast("Lesson completed!");
       }
-    } catch (err) {
+    } catch {
       showToast("Error updating progress.", "error");
     }
   };
@@ -845,7 +847,7 @@ function App() {
       } else {
         showToast(data.error || "Enrollment failed.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Connection error.", "error");
     }
   };
@@ -868,7 +870,7 @@ function App() {
       } else {
         showToast("Unenrollment failed.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Connection error.", "error");
     }
   };
