@@ -10,22 +10,27 @@ export default defineConfig({
       '/api/auth': {
         target: 'http://auth-service:8001',
         changeOrigin: true,
+        xfwd: true,
       },
       '/api/courses': {
         target: 'http://course-service:8002',
         changeOrigin: true,
+        xfwd: true,
       },
       '/api/enroll': {
         target: 'http://enrollment-service:8003',
         changeOrigin: true,
+        xfwd: true,
       },
       '/api/quizzes': {
         target: 'http://quiz-service:8004',
         changeOrigin: true,
+        xfwd: true,
       },
       '/media': {
         target: 'http://auth-service:8001',
         changeOrigin: true,
+        xfwd: true,
       }
     }
   }
