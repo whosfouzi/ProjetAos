@@ -1,19 +1,44 @@
 :root {
-  --bg: #f8fafc;
+  /* Default: Dark Mode (Aura Slate) */
+  --bg-app: #0b1326;
+  --surface: #131b2e;
+  --surface-low: #0f172a;
+  --surface-high: #1e293b;
+  --on-surface: #ffffff;
+  --on-surface-variant: #94a3b8;
+  
+  --primary: #c0c1ff;
+  --primary-glow: rgba(192, 193, 255, 0.4);
+  --secondary: #ddb7ff;
+  --accent: #6ee7b7;
+  
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+.light-mode {
+  --bg-app: #f8fafc;
   --surface: #ffffff;
-  --border: #e2e8f0;
+  --surface-low: #f1f5f9;
+  --surface-high: #e2e8f0;
+  --on-surface: #0f172a;
+  --on-surface-variant: #64748b;
+  
   --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --secondary: #059669;
-  --secondary-hover: #047857;
-  --text: #0f172a;
-  --text-muted: #64748b;
-  --error: #dc2626;
-  --success-bg: #d1fae5;
-  --success-text: #065f46;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --primary-glow: rgba(37, 99, 235, 0.2);
+  --secondary: #7c3aed;
+  --accent: #059669;
+  
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --shadow-color: rgba(0, 0, 0, 0.05);
+}
+
+body {
+  transition: background-color 0.4s ease, color 0.4s ease;
+  background-color: var(--bg-app);
+  color: var(--on-surface);
 }
 
 * {
@@ -23,16 +48,71 @@
 }
 
 body {
-  background-color: var(--bg);
-  color: var(--text);
+  transition: background-color 0.4s ease, color 0.4s ease;
+  background-color: var(--bg-app);
+  color: var(--on-surface);
   font-family: 'Inter', 'Roboto', 'Outfit', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.5;
 }
 
+.bg-mesh {
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+  background-size: 100% 100%;
+}
+
+.premium-pattern {
+  background-image: radial-gradient(var(--glass-border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  position: relative;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 25px 50px -12px var(--shadow-color);
+}
+
+.gradient-btn {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gradient-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px var(--primary-glow);
+  filter: brightness(1.1);
+}
+
 .app-container {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -132,23 +212,22 @@ body {
   color: var(--text-muted);
 }
 
-input {
+input, select {
   width: 100%;
-  background: #ffffff;
-  border: 1px solid var(--border);
+  background: var(--surface-high);
+  border: 1px solid var(--glass-border);
   border-radius: 0.5rem;
   padding: 0.75rem 1rem 0.75rem 2.75rem;
-  color: var(--text);
+  color: var(--on-surface);
   font-family: inherit;
   font-size: 1rem;
   transition: all 0.2s;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 }
 
-input:focus {
+input:focus, select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px rgba(192, 193, 255, 0.15);
 }
 
 /* Buttons */

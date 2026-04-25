@@ -8,6 +8,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-test-key-shared-12345
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 INSTALLED_APPS = [
     'django.contrib.admin',

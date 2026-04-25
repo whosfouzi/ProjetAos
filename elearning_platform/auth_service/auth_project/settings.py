@@ -8,6 +8,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-test-key-shared-1234567890')
 DEBUG = True
 ALLOWED_HOSTS = ['*']
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 INSTALLED_APPS = [
     'django.contrib.auth',
@@ -53,7 +55,7 @@ SIMPLE_JWT = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-MEDIA_URL = '/media/'
+MEDIA_URL = '/api/auth/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 import threading

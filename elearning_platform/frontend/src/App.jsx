@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   LogOut,
   User,
+  Bell,
   Lock,
   BookOpen,
   ChevronRight,
@@ -16,22 +17,39 @@ import {
   Filter,
   FileText,
   PlayCircle,
-  ChevronDown,
+  ChevronDown as ChevronDownIcon,
   ChevronUp,
   Edit,
   LayoutDashboard,
   BarChart3,
   Users,
-  Settings
+  Settings,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 import './App.css';
+import LoginView from './views/LoginView.jsx';
+import CoursesView from './views/CoursesView.jsx';
+import CourseDetailView from './views/CourseDetailView.jsx';
+import MyCoursesView from './views/MyCoursesView.jsx';
+import ProfileView from './views/ProfileView.jsx';
+import QuizView from './views/QuizView.jsx';
+import InstructorDashView from './views/InstructorDashView.jsx';
+import CourseEditorView from './views/CourseEditorView.jsx';
+import CourseRosterView from './views/CourseRosterView.jsx';
+import AdminDashView from './views/AdminDashView.jsx';
+import AdminUserListView from './views/AdminUserListView.jsx';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [userId, setUserId] = useState(localStorage.getItem('user_id') || null);
   const [userRole, setUserRole] = useState(localStorage.getItem('user_role') || 'student');
-  const [view, setView] = useState(token ? (localStorage.getItem('user_role') === 'instructor' ? 'instructor-dash' : 'courses') : 'login');
+  const [view, setView] = useState(token ? 
+    (localStorage.getItem('view') || 
+     (localStorage.getItem('user_role') === 'instructor' || localStorage.getItem('user_role') === 'teacher' ? 'instructor-dash' : 
+      localStorage.getItem('user_role') === 'admin' ? 'admin-dash' : 'courses'))
+    : 'login');
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -40,7 +58,12 @@ function App() {
   const [courses, setCourses] = useState([]);
   const [myCourses, setMyCourses] = useState([]);
   const [instructorCourses, setInstructorCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(() => {
+    const saved = localStorage.getItem('selectedCourse');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [instructorStats, setInstructorStats] = useState({ total_enrollments: 0, course_stats: [] });
+  const [instructorEnrollments, setInstructorEnrollments] = useState([]);
   const [courseStudents, setCourseStudents] = useState([]);
   const [allowedSpecializations, setAllowedSpecializations] = useState([]);
 
@@ -69,18 +92,43 @@ function App() {
   const [chapterProgress, setChapterProgress] = useState([]);
 
   const [quizzes, setQuizzes] = useState([]);
-  const [activeQuiz, setActiveQuiz] = useState(null);
+  const [activeQuiz, setActiveQuiz] = useState(() => {
+    const saved = localStorage.getItem('activeQuiz');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [activeAttempt, setActiveAttempt] = useState(() => {
+    const saved = localStorage.getItem('activeAttempt');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [answers, setAnswers] = useState({});
   const [quizResult, setQuizResult] = useState(null);
   const [lessonProgress, setLessonProgress] = useState([]);
   
   // Admin states
   const [adminStats, setAdminStats] = useState({ total_users: 0, students: 0, instructors: 0, total_courses: 0, total_enrollments: 0 });
+  const [studentStats, setStudentStats] = useState({ total_students: 0, active_students: 0, inactive_students: 0, never_logged_in: 0, enrolled_students: 0 });
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminEnrollments, setAdminEnrollments] = useState([]);
   const [adminSearch, setAdminSearch] = useState('');
   const [adminEnrollmentSearch, setAdminEnrollmentSearch] = useState('');
   const [adminRoleFilter, setAdminRoleFilter] = useState('');
+  
+  // Theme state
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
+  }, [theme]);
   const [adminInactiveFilter, setAdminInactiveFilter] = useState(false);
   const [adminSubView, setAdminSubView] = useState('overview');
 
@@ -92,6 +140,7 @@ function App() {
   const [userProfile, setUserProfile] = useState(null);
   const [profilePicFile, setProfilePicFile] = useState(null);
   const [bioInput, setBioInput] = useState('');
+  const [studyMode, setStudyMode] = useState(false);
   const [message, setMessage] = useState(null);
 
   const [msgType, setMsgType] = useState('success');
@@ -104,6 +153,26 @@ function App() {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Persist important state
+  useEffect(() => {
+    if (view) localStorage.setItem('view', view);
+  }, [view]);
+
+  useEffect(() => {
+    if (selectedCourse) localStorage.setItem('selectedCourse', JSON.stringify(selectedCourse));
+    else localStorage.removeItem('selectedCourse');
+  }, [selectedCourse]);
+
+  useEffect(() => {
+    if (activeQuiz) localStorage.setItem('activeQuiz', JSON.stringify(activeQuiz));
+    else localStorage.removeItem('activeQuiz');
+  }, [activeQuiz]);
+
+  useEffect(() => {
+    if (activeAttempt) localStorage.setItem('activeAttempt', JSON.stringify(activeAttempt));
+    else localStorage.removeItem('activeAttempt');
+  }, [activeAttempt]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -179,13 +248,17 @@ function App() {
 
         showToast(`Welcome back, ${username}! Role: ${data.role}`);
 
-        if (data.role === 'instructor') {
+        if (data.role === 'instructor' || data.role === 'teacher') {
           setView('instructor-dash');
           fetchInstructorCourses(data.access);
+        } else if (data.role === 'admin') {
+          setView('admin-dash');
+          fetchAdminStats();
         } else {
           setView('courses');
           fetchCourses(data.access);
         }
+        fetchUserProfile(data.access);
       } else {
         showToast("Invalid credentials.", "error");
       }
@@ -256,6 +329,21 @@ function App() {
     }
   };
 
+  const fetchInstructorDashboardStats = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/enroll/admin/stats/', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInstructorStats(data);
+      }
+    } catch (err) {
+      console.error("Error fetching instructor stats:", err);
+    }
+  };
+
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     const payload = {
@@ -286,6 +374,7 @@ function App() {
           specialization: savedData.specialization
         });
         fetchInstructorCourses();
+        fetchInstructorDashboardStats();
         fetchChapters(savedData.id);
       } else {
         const errorData = await res.json();
@@ -308,6 +397,7 @@ function App() {
       if (res.ok) {
         showToast("Course deleted successfully.");
         fetchInstructorCourses();
+        fetchInstructorDashboardStats();
       } else {
         showToast("Failed to delete course. You might not have permission.", "error");
       }
@@ -318,12 +408,18 @@ function App() {
 
   const fetchCourseRoster = async (courseId) => {
     try {
-      const res = await fetch(`/api/enroll/enrollments/course/${courseId}/roster/`, {
+      const res = await fetch('/api/enroll/admin/enrollments/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setCourseStudents(data);
+        setInstructorEnrollments(data);
+        if (courseId) {
+          const course = instructorCourses.find(c => c.id === courseId);
+          setSelectedCourse(course);
+        } else {
+          setSelectedCourse(null);
+        }
         setView('course-roster');
       }
     } catch {
@@ -334,10 +430,11 @@ function App() {
   const fetchAdminStats = async () => {
     try {
       // Aggregate stats from multiple services
-      const [authRes, courseRes, enrollRes] = await Promise.all([
+      const [authRes, courseRes, enrollRes, studentRes] = await Promise.all([
         fetch('/api/auth/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch('/api/courses/admin/stats/', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/enroll/admin/stats/', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch('/api/enroll/admin/stats/', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/auth/admin/student-stats', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       
       const stats = {};
@@ -346,7 +443,18 @@ function App() {
       if (enrollRes.ok) Object.assign(stats, await enrollRes.json());
       
       setAdminStats(stats);
-    } catch {
+
+      // Student-specific stats
+      if (studentRes.ok) {
+        const sData = await studentRes.json();
+        setStudentStats(prev => ({
+          ...prev,
+          ...sData,
+          // enrolled_students comes from enrollment service (unique_students field)
+          enrolled_students: stats.unique_students || 0,
+        }));
+      }
+    } catch (err) {
       console.error("Failed to load admin stats", err);
     }
   };
@@ -379,6 +487,19 @@ function App() {
       }
     } catch {
       showToast("Error loading enrollment registry.", "error");
+    }
+  };
+
+  const fetchInstructorEnrollments = async () => {
+    try {
+      const res = await fetch('/api/enroll/admin/enrollments/', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setInstructorEnrollments(await res.json());
+      }
+    } catch {
+      showToast("Error loading course rosters.", "error");
     }
   };
 
@@ -429,7 +550,7 @@ function App() {
           setNewCourse(prev => ({ ...prev, specialization: data[0].id }));
         }
       }
-    } catch {
+    } catch (err) {
       console.error("Failed to load specializations", err);
     }
   };
@@ -681,6 +802,7 @@ function App() {
           });
           if (attemptRes.ok) {
             const attempt = await attemptRes.json();
+            setActiveAttempt(attempt);
             // Map answers (store as string keys for state, but choice IDs are integers)
             attempt.answers.forEach(ans => {
                prefilledAnswers[ans.question.toString()] = ans.selected_choice;
@@ -691,10 +813,13 @@ function App() {
                   score: attempt.percentage,
                   passed: attempt.percentage >= data.passing_score,
                   correct_answers: attempt.score,
-                  total_questions: data.total_questions || attempt.total_questions
+                  total_questions: data.questions_per_attempt || attempt.total_questions
               });
+            } else {
+              setQuizResult(null);
             }
           } else {
+            setActiveAttempt(null);
             setQuizResult(null);
           }
         } catch(e) {
@@ -785,9 +910,11 @@ function App() {
         const data = await res.json();
         setQuizResult(data);
         showToast(`Quiz completed! Score: ${data.score}%`);
-        fetchMyCourses(); // Refresh global course percentage
+        
+        // Instant sync with backend
+        fetchMyCourses(); 
         if (selectedCourse?.enrollment_id) {
-          fetchChapterProgress(selectedCourse.enrollment_id); // Refresh local unit checkmarks
+          fetchLessonProgress(selectedCourse.enrollment_id);
         }
       }
     } catch {
@@ -884,10 +1011,11 @@ function App() {
         fetchMyCourses();
       } else if (view === 'instructor-dash') {
         fetchInstructorCourses();
+        fetchInstructorDashboardStats();
         fetchAllowedSpecializations();
       } else if (view === 'admin-dash') {
         fetchAdminStats();
-        if (adminSubView === 'users') fetchAdminUsers();
+        fetchAdminUsers(); // Always fetch for the "Recent Entities" widget
         if (adminSubView === 'enrollments') fetchAdminEnrollments();
       } else if (view === 'course-editor') {
         fetchAllowedSpecializations();
@@ -897,1360 +1025,144 @@ function App() {
     }
   }, [view, token, searchQuery, selDomainId, selSpecId, catalogPage]);
 
+  if (view === 'login' || view === 'register') {
+    return (
+      <LoginView
+        view={view} setView={setView}
+        username={username} setUsername={setUsername}
+        password={password} setPassword={setPassword}
+        role={role} setRole={setRole}
+        handleLogin={handleLogin} handleRegister={handleRegister}
+      />
+    );
+  }
+
+// ── Global Shell Component ──────────────────────────────────────────────
+const GlobalShell = ({ 
+  children, userRole, view, setView, searchQuery, setSearchQuery, 
+  setCatalogPage, theme, toggleTheme, dropdownRef, dropdownOpen, 
+  setDropdownOpen, username, userProfile, profilePicFile, logout, 
+  message, msgType 
+}) => {
+  const avatarSrc = (profilePicFile instanceof Blob) 
+    ? URL.createObjectURL(profilePicFile) 
+    : (userProfile?.profile_picture || null);
+  
   return (
-    <div className="app-container">
-      <nav className="navbar">
-        <div className="logo-container">
-          <GraduationCap size={28} />
-          <span>Academic Portal</span>
-        </div>
-        {token && (
-          <div className="nav-user">
-            {userRole === 'student' ? (
+    <div className={`min-h-screen transition-colors duration-500 bg-[var(--bg-app)] text-[var(--on-surface)] font-body selection:bg-primary selection:text-on-primary`}>
+      {/* Universal Navbar */}
+      <nav className="fixed top-0 left-0 w-full z-[100] h-24 flex items-center justify-between px-12 bg-[var(--bg-app)]/80 backdrop-blur-2xl border-b border-white/5">
+        <div className="flex items-center gap-16">
+          <div 
+            className="text-2xl font-black tracking-tighter text-primary uppercase cursor-pointer" 
+            onClick={() => setView(userRole === 'admin' ? 'admin-dash' : (userRole === 'instructor' || userRole === 'teacher') ? 'instructor-dash' : 'courses')}
+          >
+            Aura {userRole === 'admin' ? 'Nexus' : 'Scholar'}
+          </div>
+          
+          <div className="hidden lg:flex items-center gap-8">
+            {userRole === 'admin' ? (
               <>
-                <button onClick={() => setView('courses')} className={`btn btn-ghost ${view === 'courses' ? 'active' : ''}`}>Catalog</button>
+                <button onClick={() => setView('admin-dash')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'admin-dash' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Intelligence Hub</button>
+                <button onClick={() => setView('admin-users')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'admin-users' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Registry</button>
+                <button onClick={() => setView('courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Catalog</button>
+              </>
+            ) : (userRole === 'instructor' || userRole === 'teacher') ? (
+              <>
+                <button onClick={() => setView('instructor-dash')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'instructor-dash' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Studio Dashboard</button>
+                <button onClick={() => setView('courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Public Library</button>
               </>
             ) : (
               <>
-                <button onClick={() => { setView('instructor-dash'); fetchInstructorCourses(); }} className={`btn btn-ghost ${view === 'instructor-dash' ? 'active' : ''}`}>Instructor Dash</button>
-                <button onClick={() => {
-                  setSelectedCourse(null);
-                  setNewCourse({ title: '', description: '', specialization: '' });
-                  setView('course-editor');
-                }} className={`btn btn-ghost ${view === 'course-editor' ? 'active' : ''}`}>Create Course</button>
+                <button onClick={() => setView('my-courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'my-courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>My Pathways</button>
+                <button onClick={() => setView('courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Browser</button>
               </>
             )}
+          </div>
+        </div>
 
-            <div ref={dropdownRef} className="profile-dropdown-container">
-              <div 
-                className={`profile-avatar ${dropdownOpen ? 'open' : ''}`}
+        <div className="flex items-center gap-8">
+          <div className="relative hidden md:block">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--on-surface-variant)]" />
+            <input 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCatalogPage(1); // Reset pagination on new search
+                if (view !== 'courses' && view !== 'my-courses') {
+                  setView('courses'); // Auto-navigate to catalog when searching
+                }
+              }}
+              className="bg-[var(--surface-high)]/10 border border-white/5 rounded-full py-2.5 pl-10 pr-6 text-xs text-[var(--on-surface)] placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-all w-64" 
+              placeholder="Query system repository..." 
+            />
+          </div>
+
+          <div className="flex items-center gap-6 pl-6 border-l border-white/10">
+            {/* Celestial Theme Toggle */}
+            <button 
+              onClick={toggleTheme}
+              className="text-[var(--on-surface-variant)] hover:text-primary transition-all p-2 rounded-xl hover:bg-white/5 relative group"
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              <span className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[200] pointer-events-none">
+                 Cycle to {theme === 'dark' ? 'Lumina' : 'Umbra'}
+              </span>
+            </button>
+
+            <button className="text-[var(--on-surface-variant)] hover:text-primary transition-all relative">
+              <Bell size={20} />
+              <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_var(--primary)]"></span>
+            </button>
+            
+            <div className="relative" ref={dropdownRef}>
+              <button 
                 onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-3 p-1 rounded-2xl hover:bg-white/5 transition-all group"
               >
-                {userProfile?.profile_picture ? (
-                    <img src={userProfile.profile_picture} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                    <User size={20} />
-                )}
-              </div>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-white/10 flex items-center justify-center overflow-hidden">
+                  {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" alt="" /> : <User size={20} className="text-primary" />}
+                </div>
+                <div className="hidden lg:block text-left">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface)] leading-none mb-1">{username}</p>
+                  <p className="text-[8px] font-bold uppercase tracking-tighter text-[var(--on-surface-variant)] leading-none">{userRole}</p>
+                </div>
+                <ChevronDownIcon size={14} className={`text-[var(--on-surface-variant)] transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
 
               {dropdownOpen && (
-                <div className="profile-dropdown-menu">
-                  <div style={{ padding: '0.75rem 1.25rem', background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
-                    <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{username || 'Logged In User'}</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{userRole} Account</p>
+                <div className="absolute right-0 mt-4 w-64 bg-[var(--surface)]/95 backdrop-blur-2xl rounded-3xl border border-white/5 shadow-3xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 z-[110]">
+                  <div className="p-6 border-b border-white/5 bg-white/[0.02]">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-4">Identity Profile</p>
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
+                           {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" alt="" /> : <User size={24} className="text-primary" />}
+                        </div>
+                        <div>
+                           <p className="font-bold text-[var(--on-surface)] text-sm">{username}</p>
+                           <p className="text-[10px] text-slate-500 uppercase tracking-widest">{(userRole === 'instructor' || userRole === 'teacher') ? 'Instructor' : userRole}</p>
+                        </div>
+                     </div>
                   </div>
-                  
-                  <button onClick={() => { setView('profile'); setDropdownOpen(false); }} className="dropdown-item">
-                    <User size={16} /> Profile
-                  </button>
-                  
-                  {userRole === 'student' && (
-                    <button onClick={() => { setView('my-courses'); fetchMyCourses(); setDropdownOpen(false); }} className="dropdown-item">
-                      <BookOpen size={16} /> My Learning
-                    </button>
-                  )}
-
-                  {userRole === 'admin' && (
-                    <button onClick={() => { setView('admin-dash'); setAdminSubView('overview'); fetchAdminStats(); setDropdownOpen(false); }} className="dropdown-item">
-                      <LayoutDashboard size={16} /> Admin Dashboard
-                    </button>
-                  )}
-
-                  <button onClick={() => { setView('settings'); setDropdownOpen(false); }} className="dropdown-item">
-                    <Settings size={16} /> Settings
-                  </button>
-
-                  <div className="dropdown-divider"></div>
-
-                  <button onClick={() => { logout(); setDropdownOpen(false); }} className="dropdown-item logout">
-                    <LogOut size={16} /> Logout
-                  </button>
+                  <div className="p-2">
+                     <button onClick={() => { setView('profile'); setDropdownOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] hover:bg-white/5 transition-all">
+                        <User size={16} className="text-primary" /> Profile Settings
+                     </button>
+                     <button onClick={logout} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-400/10 transition-all">
+                        <LogOut size={16} /> Terminate Session
+                     </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
-        )}
+        </div>
       </nav>
 
-      <main className="auth-wrapper">
-        {view === 'login' && (
-          <div className="lms-card auth-card">
-            <div className="auth-header">
-              <h2>Student Login</h2>
-              <p className="text-muted">Access the academic portal</p>
-            </div>
-            <form onSubmit={handleLogin} className="auth-form">
-              <div className="input-group">
-                <User className="input-icon" size={18} />
-                <input type="text" placeholder="Student ID or Username" value={username} onChange={e => setUsername(e.target.value)} required />
-              </div>
-              <div className="input-group">
-                <Lock className="input-icon" size={18} />
-                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
-              </div>
-              <button type="submit" className="btn btn-primary">
-                Secure Login <ChevronRight size={18} />
-              </button>
-              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                <span className="text-muted">Not registered? </span>
-                <button type="button" onClick={() => setView('register')} className="btn btn-ghost" style={{ padding: '0 5px', color: 'var(--primary)' }}>Create an account</button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {view === 'register' && (
-          <div className="lms-card auth-card">
-            <div className="auth-header">
-              <h2>Join University</h2>
-              <p className="text-muted">Create your academic account</p>
-            </div>
-            <form onSubmit={handleRegister} className="auth-form">
-              <div className="input-group">
-                <User className="input-icon" size={18} />
-                <input type="text" placeholder="Full Name or Username" value={username} onChange={e => setUsername(e.target.value)} required />
-              </div>
-              <div className="input-group">
-                <Lock className="input-icon" size={18} />
-                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
-              </div>
-              <div className="role-selector" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                <label className={`role-chip ${role === 'student' ? 'active' : ''}`} onClick={() => setRole('student')}>
-                  Student
-                </label>
-                <label className={`role-chip ${role === 'instructor' ? 'active' : ''}`} onClick={() => setRole('instructor')}>
-                  Instructor
-                </label>
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ background: role === 'instructor' ? 'var(--primary)' : 'var(--secondary)' }}>
-                Register Account <ChevronRight size={18} />
-              </button>
-              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                <span className="text-muted">Already registered? </span>
-                <button type="button" onClick={() => setView('login')} className="btn btn-ghost" style={{ padding: '0 5px' }}>Return to login</button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {view === 'instructor-dash' && (
-          <div className="content-wrapper" style={{ width: '100%' }}>
-            <div className="section-header">
-              <h1>Instructor Dashboard</h1>
-              <p className="text-muted">Manage your authored courses and monitor student involvement.</p>
-            </div>
-            <div className="course-grid">
-              {instructorCourses.map(c => (
-                <div key={c.id} className="lms-card course-card">
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <h3 className="course-title">{c.title}</h3>
-                      <div style={{ display: 'flex', gap: '0.3rem' }}>
-                        <span className="badge" style={{ fontSize: '0.6rem', background: '#e0f2fe', color: '#0369a1' }}>{c.domain}</span>
-                      </div>
-                    </div>
-                    <p className="course-desc">{c.description}</p>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                      <span style={{ fontWeight: 600 }}>Category:</span> {c.category}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                    <button onClick={() => fetchCourseRoster(c.id)} className="btn btn-ghost" style={{ flex: 1, border: '1px solid var(--border)' }}>
-                      View Roster
-                    </button>
-                    <button onClick={() => {
-                      setSelectedCourse(c);
-                      setNewCourse({ title: c.title, description: c.description, specialization: c.specialization });
-                      setView('course-editor');
-                    }} className="btn btn-primary" style={{ flex: 1 }}>
-                      Edit Course
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCourse(c.id)}
-                      className="btn btn-ghost"
-                      style={{ padding: '0.5rem', color: 'var(--error)', border: '1px solid var(--error)' }}
-                      title="Delete Course"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <div className="lms-card course-card create-new" onClick={() => {
-                setSelectedCourse(null);
-                setNewCourse({ title: '', description: '', specialization: '' });
-                setView('course-editor');
-              }}>
-                <PlusCircle size={48} className="text-muted" />
-                <h3>Create New Course</h3>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {view === 'course-editor' && (
-          <div className="content-wrapper" style={{ width: '100%', maxWidth: '700px' }}>
-            <button onClick={() => setView('instructor-dash')} className="btn btn-ghost" style={{ marginBottom: '1.5rem' }}>← Back to Dashboard</button>
-            <div className="lms-card">
-              <h2 style={{ marginBottom: '1.5rem' }}>{selectedCourse ? 'Edit Course' : 'Create New Curricular Course'}</h2>
-              <form onSubmit={handleSaveCourse} className="auth-form">
-                <div className="input-group-label" style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>Academic Specialization & Domain</label>
-                  <select
-                    value={newCourse.specialization}
-                    onChange={e => setNewCourse({ ...newCourse, specialization: e.target.value })}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
-                    required
-                    disabled={!!selectedCourse}
-                  >
-                    <option value="">-- Select your Expertise --</option>
-                    {allowedSpecializations.map(spec => (
-                      <option key={spec.id} value={spec.id}>
-                        {spec.domain_name} &raquo; {spec.name}
-                      </option>
-                    ))}
-                  </select>
-                  {allowedSpecializations.length === 0 && (
-                    <p style={{ color: 'var(--error)', fontSize: '0.75rem', marginTop: '0.5rem' }}>You have no verified specializations. Please contact administration.</p>
-                  )}
-                </div>
-                <div className="input-group-label" style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>Course Title</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Distributed Systems 101"
-                    value={newCourse.title}
-                    onChange={e => setNewCourse({ ...newCourse, title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="input-group-label" style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>Description</label>
-                  <textarea
-                    placeholder="Detailed course description..."
-                    value={newCourse.description}
-                    onChange={e => setNewCourse({ ...newCourse, description: e.target.value })}
-                    rows={4}
-                    style={{ width: '100%', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary">{selectedCourse ? 'Update Course' : 'Save Course Identity'}</button>
-              </form>
-            </div>
-
-            {!selectedCourse && (
-              <div className="lms-card" style={{ marginTop: '1.5rem', textAlign: 'center', padding: '2rem', border: '1px dashed var(--border)', background: '#f8fafc' }}>
-                <BookOpen size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 1rem auto' }} />
-                <h3 style={{ marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Curriculum Builder Locked</h3>
-                <p className="text-muted" style={{ fontSize: '0.9rem' }}>Save the basic course identity details above to unlock the ability to construct chapters and attach syllabus PDF materials.</p>
-              </div>
-            )}
-
-            {/* Chapter Manager UI */}
-            {selectedCourse && (
-              <div className="lms-card" style={{ marginTop: '1.5rem' }}>
-                <h2 style={{ marginBottom: '1.5rem' }}>Course Curriculum Builder</h2>
-
-                {/* List Existing Chapters */}
-                {chapters.length > 0 ? (
-                  <div style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Existing Chapters</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {chapters.map(ch => (
-                        <div key={ch.id} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', border: '1px solid var(--border)', borderRadius: '0.5rem' }}>
-                          {editingChapterId === ch.id ? (
-                            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px dashed var(--border)' }}>
-                              <h4 style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>Edit Chapter</h4>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '1rem', marginBottom: '1rem' }}>
-                                <div>
-                                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Order</label>
-                                  <input type="number" value={editChapterData.order} onChange={e => setEditChapterData({ ...editChapterData, order: parseInt(e.target.value) || 1 })} style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '0.25rem' }} />
-                                </div>
-                                <div>
-                                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Title</label>
-                                  <input type="text" value={editChapterData.title} onChange={e => setEditChapterData({ ...editChapterData, title: e.target.value })} style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '0.25rem' }} />
-                                </div>
-                              </div>
-                              <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Description</label>
-                                <textarea value={editChapterData.description} onChange={e => setEditChapterData({ ...editChapterData, description: e.target.value })} rows={2} style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '0.25rem' }} />
-                              </div>
-                              <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Replace PDF (Optional)</label>
-                                {ch.pdf_file && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', fontSize: '0.8rem' }}>
-                                    <span>Current: <a href={ch.pdf_file} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>View PDF</a></span>
-                                    <button onClick={() => handleDeleteChapterPDF(selectedCourse.id, ch.id)} className="btn btn-ghost" style={{ padding: '0.2rem 0.5rem', color: 'var(--error)', fontSize: '0.75rem', border: '1px solid var(--error)' }}>Remove PDF</button>
-                                  </div>
-                                )}
-                                <input type="file" accept="application/pdf" onChange={e => setEditChapterData({ ...editChapterData, pdfFile: e.target.files[0] })} style={{ fontSize: '0.8rem' }} />
-                              </div>
-                              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                <button onClick={() => setEditingChapterId(null)} className="btn btn-ghost" style={{ padding: '0.5rem 1rem', border: '1px solid var(--border)' }}>Cancel</button>
-                                <button onClick={() => handleUpdateChapter(selectedCourse.id, ch.id)} className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>Save Changes</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                <div style={{ fontWeight: 600 }}>Chapter {ch.order}: {ch.title}</div>
-                                {ch.pdf_file && <a href={ch.pdf_file} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>View PDF</a>}
-                              </div>
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button onClick={() => { setEditingChapterId(ch.id); setEditChapterData({ title: ch.title, description: ch.description || '', pdfFile: null, order: ch.order }); }} className="btn btn-ghost" style={{ padding: '0.5rem', color: 'var(--primary)' }} title="Edit Chapter">
-                                  <Edit size={18} />
-                                </button>
-                                <button onClick={() => handleDeleteChapter(selectedCourse.id, ch.id)} className="btn btn-ghost" style={{ padding: '0.5rem', color: 'var(--error)' }} title="Delete Chapter">
-                                  <Trash2 size={18} />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Quiz Builder Sub-Section */}
-                            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-                              <h5 style={{ fontSize: '0.85rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Chapter Quizzes</h5>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                {quizzes.filter(q => q.chapter_id === ch.id).map(quiz => (
-                                  <div key={quiz.id}>
-                                    <div style={{ padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '0.25rem', background: '#f8fafc', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <div>
-                                        <strong>{quiz.title}</strong> - {quiz.total_questions || 0} questions (Pass: {quiz.passing_score}%)
-                                      </div>
-                                      <button onClick={() => setAddingQuestionToQuiz(addingQuestionToQuiz === quiz.id ? null : quiz.id)} className="btn btn-ghost" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', border: '1px solid var(--primary)', color: 'var(--primary)' }}>
-                                        {addingQuestionToQuiz === quiz.id ? 'Close' : '+ Add Question'}
-                                      </button>
-                                    </div>
-                                    
-                                    {/* Question Builder Form */}
-                                    {addingQuestionToQuiz === quiz.id && (
-                                      <div style={{ padding: '1rem', border: '1px solid var(--border)', borderTop: 'none', background: '#fff', borderBottomLeftRadius: '0.25rem', borderBottomRightRadius: '0.25rem' }}>
-                                        <input type="text" placeholder="Question Text (e.g., What is gravity?)" value={newQuestion.text} onChange={e => setNewQuestion({...newQuestion, text: e.target.value})} style={{ width: '100%', marginBottom: '0.5rem', padding: '0.4rem', fontSize: '0.8rem', border: '1px solid var(--border)' }} />
-                                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                          <input type="text" placeholder="Correct Answer text" value={newQuestion.choices_attributes[0].text} onChange={e => { const newC = [...newQuestion.choices_attributes]; newC[0].text = e.target.value; setNewQuestion({...newQuestion, choices_attributes: newC}) }} style={{ width: '50%', padding: '0.4rem', fontSize: '0.8rem', border: '1px solid var(--success)', background: '#f0fdf4' }} />
-                                          <input type="text" placeholder="Wrong Answer text" value={newQuestion.choices_attributes[1].text} onChange={e => { const newC = [...newQuestion.choices_attributes]; newC[1].text = e.target.value; setNewQuestion({...newQuestion, choices_attributes: newC}) }} style={{ width: '50%', padding: '0.4rem', fontSize: '0.8rem', border: '1px solid var(--error)', background: '#fef2f2' }} />
-                                        </div>
-                                        <button onClick={() => handleAddQuestion(quiz.id)} className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', width: '100%' }}>Save Question</button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                                {quizzes.filter(q => q.chapter_id === ch.id).length === 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No quizzes assigned yet.</span>}
-                              </div>
-
-                              {addingQuizToChapter === ch.id ? (
-                                <div style={{ padding: '0.75rem', border: '1px dashed var(--border)', borderRadius: '0.25rem', background: '#fff' }}>
-                                  <input type="text" placeholder="Quiz Title" value={newQuiz.title} onChange={e => setNewQuiz({...newQuiz, title: e.target.value})} style={{ width: '100%', marginBottom: '0.5rem', padding: '0.4rem', fontSize: '0.8rem', border: '1px solid var(--border)' }} />
-                                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                    <input type="number" placeholder="Passing Score (%)" value={newQuiz.passingScore} onChange={e => setNewQuiz({...newQuiz, passingScore: e.target.value})} style={{ width: '50%', padding: '0.4rem', fontSize: '0.8rem', border: '1px solid var(--border)' }} />
-                                  </div>
-                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button onClick={() => handleCreateQuiz(selectedCourse.id, ch.id)} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Save Quiz</button>
-                                    <button onClick={() => setAddingQuizToChapter(null)} className="btn btn-ghost" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', border: '1px solid var(--border)' }}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button onClick={() => setAddingQuizToChapter(ch.id)} className="btn btn-ghost" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', border: '1px dashed var(--primary)', color: 'var(--primary)' }}>+ Create Draft Quiz</button>
-                              )}
-                            </div>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-muted" style={{ marginBottom: '2rem' }}>No chapters added to this course yet.</p>
-                )}
-
-                {/* Add New Chapter Form */}
-                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
-                  <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Add New Chapter</h3>
-                  <div className="input-group-label" style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>Chapter Order / Number</label>
-                    <input type="number" value={newChapter.order} onChange={e => setNewChapter({ ...newChapter, order: parseInt(e.target.value) || 1 })} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
-                  </div>
-                  <div className="input-group-label" style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>Chapter Title</label>
-                    <input type="text" placeholder="e.g. Introduction to Variables" value={newChapter.title} onChange={e => setNewChapter({ ...newChapter, title: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
-                  </div>
-                  <div className="input-group-label" style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>Short Description (Optional)</label>
-                    <textarea value={newChapter.description} onChange={e => setNewChapter({ ...newChapter, description: e.target.value })} rows={2} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }} />
-                  </div>
-                  <div className="input-group-label" style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>Chapter PDF (Required)</label>
-                    <input type="file" accept="application/pdf" onChange={e => setNewChapter({ ...newChapter, pdfFile: e.target.files[0] })} style={{ fontSize: '0.85rem' }} />
-                  </div>
-                  <button onClick={() => handleCreateChapter(selectedCourse.id)} disabled={!newChapter.title} className="btn btn-secondary" style={{ width: '100%' }}>Add Chapter</button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {view === 'course-roster' && (
-          <div className="content-wrapper" style={{ width: '100%', maxWidth: '800px' }}>
-            <button onClick={() => setView('instructor-dash')} className="btn btn-ghost" style={{ marginBottom: '1.5rem' }}>← Back to Dashboard</button>
-            <div className="lms-card">
-              <div className="section-header" style={{ border: 'none', marginBottom: '2rem' }}>
-                <h1>Student Roster</h1>
-                <p className="text-muted">Currently enrolled students for this course section.</p>
-              </div>
-              <div className="table-wrapper">
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--border)' }}>
-                      <th style={{ padding: '1rem', textAlign: 'left' }}>Student ID</th>
-                      <th style={{ padding: '1rem', textAlign: 'left' }}>Enrolled On</th>
-                      <th style={{ padding: '1rem', textAlign: 'left' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {courseStudents.map(s => (
-                      <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '1rem' }}>User #{s.student_id}</td>
-                        <td style={{ padding: '1rem' }}>{new Date(s.enrolled_at).toLocaleDateString()}</td>
-                        <td style={{ padding: '1rem' }}>
-                          <span className={`badge ${s.status === 'completed' ? 'badge-success' : ''}`} style={{ fontSize: '0.7rem' }}>
-                            {s.status.toUpperCase()}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {view === 'courses' && (
-          <div className="content-wrapper" style={{ width: '100%' }}>
-            
-            {userRole === 'student' && (
-              <div className="landing-hero" style={{
-                background: 'linear-gradient(135deg, var(--primary) 0%, #1e1b4b 100%)',
-                borderRadius: '1rem',
-                padding: '4rem 2rem',
-                marginBottom: '3rem',
-                color: 'white',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                boxShadow: '0 10px 25px -5px rgba(79, 70, 229, 0.4)'
-              }}>
-                <GraduationCap size={56} style={{ marginBottom: '1.5rem', opacity: 0.9 }} />
-                <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', fontWeight: 800 }}>Welcome Back, Learner!</h1>
-                <p style={{ fontSize: '1.1rem', maxWidth: '600px', marginBottom: '2rem', opacity: 0.9 }}>
-                  Ready to continue your educational journey? Review your current progress or discover exciting new academic programs tailored for your specialization.
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button onClick={() => { setView('my-courses'); fetchMyCourses(); }} className="btn" style={{ background: 'white', color: 'var(--primary)', padding: '0.85rem 2rem', fontWeight: 600, fontSize: '1rem', border: 'none' }}>
-                    Check My Courses
-                  </button>
-                  <button onClick={() => document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' })} className="btn" style={{ background: 'transparent', border: '2px solid rgba(255,255,255,0.7)', color: 'white', padding: '0.85rem 2rem', fontWeight: 600, fontSize: '1rem' }}>
-                    Browse Courses
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div id="catalog-section" style={{ paddingTop: userRole === 'student' ? '1rem' : '0' }}>
-              <div className="section-header" style={{ marginBottom: '2rem' }}>
-                <div>
-                  <h1>Course Catalog</h1>
-                  <p className="text-muted">Browse academic programs and enroll in curriculum sections.</p>
-                </div>
-              </div>
-
-            <div className="filter-bar lms-card" style={{ padding: '1rem', marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div className="search-input" style={{ flex: 2, minWidth: '250px', position: 'relative' }}>
-                <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type="text"
-                  placeholder="Search by keyword..."
-                  value={searchQuery}
-                  onChange={e => { setSearchQuery(e.target.value); setCatalogPage(1); }}
-                  style={{ width: '100%', paddingLeft: '2.5rem', height: '42px' }}
-                />
-              </div>
-              
-              <div style={{ flex: 1, minWidth: '180px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <select
-                  value={selDomainId}
-                  onChange={e => {
-                    const dId = e.target.value;
-                    setSelDomainId(dId);
-                    setSelSpecId('');
-                    setCatalogPage(1);
-                    if (dId) fetchFilteredSpecs(dId);
-                    else setCatalogSpecializations([]);
-                  }}
-                  style={{ flex: 1, height: '42px', padding: '0 0.5rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: 'white' }}
-                >
-                  <option value="">All Domains</option>
-                  {catalogDomains.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ flex: 1, minWidth: '180px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <select
-                  value={selSpecId}
-                  onChange={e => { setSelSpecId(e.target.value); setCatalogPage(1); }}
-                  disabled={!selDomainId}
-                  style={{ 
-                    flex: 1, 
-                    height: '42px', 
-                    padding: '0 0.5rem', 
-                    border: '1px solid var(--border)', 
-                    borderRadius: '0.5rem', 
-                    background: 'white',
-                    opacity: selDomainId ? 1 : 0.5,
-                    cursor: selDomainId ? 'pointer' : 'not-allowed'
-                  }}
-                >
-                  <option value="">All Specializations</option>
-                  {catalogSpecializations.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                onClick={() => { 
-                  setSearchQuery(''); 
-                  setSelDomainId(''); 
-                  setSelSpecId(''); 
-                  setCatalogPage(1);
-                  setCatalogSpecializations([]);
-                }}
-                className="btn btn-ghost"
-                style={{ height: '42px', border: '1px solid var(--border)', padding: '0 1.5rem' }}
-              >
-                Reset
-              </button>
-            </div>
-
-            <div className="course-grid">
-              {courses.map((c) => (
-                <div key={c.id} className="lms-card course-card">
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <h3 className="course-title">{c.title}</h3>
-                      <span className="badge" style={{ fontSize: '0.6rem', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd' }}>{c.domain}</span>
-                    </div>
-                    <p className="course-desc">{c.description}</p>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      <span style={{ fontWeight: 600 }}>Category:</span> {c.category}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                    <button onClick={() => fetchCourseDetail(c.id)} className="btn btn-ghost" style={{ flex: 1, border: '1px solid var(--border)' }}>
-                      Syllabus
-                    </button>
-                    <button
-                      onClick={() => enrollCourse(c.id)}
-                      className="btn btn-primary"
-                      style={{ flex: 1 }}
-                      disabled={userRole === 'instructor'}
-                    >
-                      {userRole === 'instructor' ? 'Restricted' : 'Enroll'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {courses.length === 0 && (
-                <div className="empty-state">
-                  <p className="text-muted">No courses are currently available in the catalog.</p>
-                </div>
-              )}
-            </div>
-            
-            {/* Pagination Controls */}
-            {catalogTotalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '2rem' }}>
-                <button 
-                  className="btn btn-ghost" 
-                  disabled={catalogPage <= 1}
-                  onClick={() => setCatalogPage(p => Math.max(1, p - 1))}
-                  style={{ border: '1px solid var(--border)' }}
-                >
-                  Previous
-                </button>
-                <span className="text-muted" style={{ fontSize: '0.9rem' }}>
-                  Page <span style={{ fontWeight: 600, color: 'var(--text)' }}>{catalogPage}</span> of {catalogTotalPages}
-                </span>
-                <button 
-                  className="btn btn-ghost" 
-                  disabled={catalogPage >= catalogTotalPages}
-                  onClick={() => setCatalogPage(p => Math.min(catalogTotalPages, p + 1))}
-                  style={{ border: '1px solid var(--border)' }}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-            </div>
-          </div>
-        )}
-
-        {view === 'profile' && (
-          <div className="content-wrapper" style={{ width: '100%', maxWidth: '800px' }}>
-            <div className="lms-card profile-card" style={{ padding: '3rem' }}>
-              <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative' }}>
-                    <div style={{ width: '150px', height: '150px', borderRadius: '1rem', background: '#f8fafc', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    {userProfile?.profile_picture ? (
-                        <img src={userProfile.profile_picture} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                        <User size={80} color="var(--text-muted)" />
-                    )}
-                    </div>
-                    <span className="badge" style={{ position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%)', padding: '0.4rem 1rem' }}>
-                        {userRole.toUpperCase()}
-                    </span>
-                </div>
-                
-                <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <h1 style={{ marginBottom: '0.25rem' }}>{userProfile?.username || 'User'}</h1>
-                            <p className="text-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <FileText size={16} /> Joined {userProfile?.date_joined ? new Date(userProfile.date_joined).toLocaleDateString() : 'Recently'}
-                            </p>
-                        </div>
-                        <button onClick={() => setView('settings')} className="btn btn-ghost" style={{ border: '1px solid var(--border)' }}>
-                            <Edit size={16} /> Edit Profile
-                        </button>
-                    </div>
-                    
-                    <div style={{ marginTop: '2rem' }}>
-                        <h4 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>About Me</h4>
-                        <p style={{ lineHeight: '1.6', color: 'var(--text)' }}>
-                            {userProfile?.bio || "This user hasn't written a bio yet."}
-                        </p>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '2rem', marginTop: '2.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-                        <div>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Email Address</p>
-                            <p style={{ fontWeight: 600 }}>{userProfile?.email || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Last Login</p>
-                            <p style={{ fontWeight: 600 }}>{userProfile?.last_login ? new Date(userProfile.last_login).toLocaleDateString() : 'N/A'}</p>
-                        </div>
-                    </div>
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
-                    <button 
-                        onClick={() => setView(userRole === 'instructor' ? 'instructor-dash' : 'courses')} 
-                        className="btn btn-primary"
-                        style={{ padding: '0.75rem 3rem' }}
-                    >
-                        Return to Dashboard
-                    </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {view === 'settings' && (
-          <div className="content-wrapper" style={{ width: '100%', maxWidth: '800px' }}>
-            <div className="lms-card" style={{ padding: '3rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
-                <Settings size={32} color="var(--primary)" />
-                <h1 style={{ margin: 0 }}>Account Settings</h1>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {/* Profile Picture Upload Section */}
-                <div style={{ padding: '2rem', border: '1px solid var(--border)', borderRadius: '1rem', background: '#f8fafc' }}>
-                  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'white', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                        {profilePicFile ? (
-                            <img src={URL.createObjectURL(profilePicFile)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : userProfile?.profile_picture ? (
-                            <img src={userProfile.profile_picture} alt="Current" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                            <User size={32} color="var(--text-muted)" />
-                        )}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Profile Picture</h3>
-                        <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>JPG, PNG or GIF. Max size of 2MB.</p>
-                        <input 
-                            type="file" 
-                            accept="image/*" 
-                            id="pfp-upload"
-                            onChange={(e) => setProfilePicFile(e.target.files[0])}
-                            style={{ display: 'none' }} 
-                        />
-                        <label htmlFor="pfp-upload" className="btn btn-ghost" style={{ border: '1px solid var(--border)', background: 'white', display: 'inline-flex', cursor: 'pointer' }}>
-                            Choose New File
-                        </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bio/Info Section */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Biography</label>
-                        <textarea 
-                            value={bioInput}
-                            onChange={(e) => setBioInput(e.target.value)}
-                            placeholder="Tell us a bit about your educational journey..."
-                            rows={4}
-                            style={{ width: '100%', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border)', fontFamily: 'inherit' }}
-                        />
-                    </div>
-                </div>
-
-                <div className="dropdown-divider" style={{ margin: '1rem 0' }}></div>
-
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                    <button onClick={() => setView('profile')} className="btn btn-ghost">Cancel</button>
-                    <button onClick={handleUpdateProfile} className="btn btn-primary" style={{ minWidth: '150px' }}>
-                        Save Changes
-                    </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {view === 'course-detail' && selectedCourse && (
-          <div className="content-wrapper" style={{ width: '100%', maxWidth: '960px' }}>
-            <button onClick={() => setView(selectedCourse.enrollment_id ? 'my-courses' : 'courses')} className="btn btn-ghost" style={{ marginBottom: '1.5rem', padding: '0.5rem 1rem', border: '1px solid var(--border)' }}>← Back</button>
-
-            {/* Course Header */}
-            <div className="lms-card" style={{ marginBottom: '1.5rem' }}>
-              <div className="detail-header">
-                <div className="detail-icon"><BookOpen size={36} color="var(--primary)" /></div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{selectedCourse.title}</h1>
-                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
-                        <span className="badge" style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.7rem' }}>{selectedCourse.domain}</span>
-                        <span className="badge" style={{ background: '#fefce8', color: '#854d0e', border: '1px solid #fde68a', fontSize: '0.7rem' }}>{selectedCourse.category}</span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      {selectedCourse.status === 'completed' && <span className="badge badge-success">🏆 Completed</span>}
-                    </div>
-                  </div>
-                  <p className="text-muted" style={{ marginTop: '0.75rem', lineHeight: '1.6' }}>{selectedCourse.description}</p>
-                </div>
-              </div>
-
-              {/* Progress bar (for enrolled students) */}
-              {selectedCourse.enrollment_id && (
-                <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Course Progress</span>
-                    <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.9rem' }}>
-                      {chapterProgress.filter(p => p.completed).length} / {chapterProgress.length} chapters
-                    </span>
-                  </div>
-                  <div style={{ background: 'var(--border)', borderRadius: '999px', height: '10px', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%',
-                      borderRadius: '999px',
-                      background: 'linear-gradient(90deg, var(--primary), var(--secondary))',
-                      width: `${chapterProgress.length > 0 ? Math.round((chapterProgress.filter(p => p.completed).length / chapterProgress.length) * 100) : 0}%`,
-                      transition: 'width 0.5s ease'
-                    }} />
-                  </div>
-                  <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-                    {chapterProgress.length > 0 ? Math.round((chapterProgress.filter(p => p.completed).length / chapterProgress.length) * 100) : 0}% complete
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Chapters / Curriculum */}
-            <div>
-              <h2 style={{ marginBottom: '1rem', fontWeight: 700 }}>📚 Course Curriculum</h2>
-              {chapters.length === 0 ? (
-                <div className="lms-card" style={{ textAlign: 'center', padding: '3rem' }}>
-                  <p className="text-muted">No chapters have been added to this course yet.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {chapters.map((ch, idx) => {
-                    const prog = chapterProgress.find(p => p.chapter_id === ch.id);
-                    const isCompleted = prog?.completed;
-                    const isViewed = prog?.viewed;
-                    return (
-                      <div key={ch.id} className="lms-card" style={{ border: isCompleted ? '2px solid var(--secondary)' : '1px solid var(--border)' }}>
-                        <div
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                          onClick={() => setExpandedChapter(expandedChapter === ch.id ? null : ch.id)}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{
-                              width: '2rem', height: '2rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                              background: isCompleted ? 'var(--secondary)' : isViewed ? '#fef3c7' : 'var(--border)',
-                              color: isCompleted ? 'white' : '#374151', fontWeight: 700, fontSize: '0.85rem'
-                            }}>
-                              {isCompleted ? '✓' : idx + 1}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 600 }}>Chapter {ch.order}: {ch.title}</div>
-                              {ch.description && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{ch.description}</div>}
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            {isCompleted && <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Completed</span>}
-                            {isViewed && !isCompleted && <span className="badge" style={{ fontSize: '0.65rem', background: '#fef3c7', color: '#92400e' }}>In Progress</span>}
-                            {!isViewed && <span className="badge" style={{ fontSize: '0.65rem', background: '#f1f5f9', color: '#64748b' }}>Not Started</span>}
-                            {expandedChapter === ch.id ? <ChevronUp size={18} color="var(--text-muted)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
-                          </div>
-                        </div>
-
-                        {expandedChapter === ch.id && (
-                          <div style={{ borderTop: '1px solid var(--border)', marginTop: '1rem', paddingTop: '1rem' }}>
-                            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>Access the material below. You must view the content to unlock progress and attempt assessments.</p>
-                            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                              {ch.pdf_file ? (
-                                <a
-                                  href={ch.pdf_file}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="btn btn-primary"
-                                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
-                                  onClick={() => selectedCourse.enrollment_id && handleMarkChapterViewed(selectedCourse.enrollment_id, ch.id)}
-                                >
-                                  <FileText size={16} /> Open PDF Materials
-                                </a>
-                              ) : (
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No PDF uploaded for this chapter.</span>
-                              )}
-                              {quizzes?.filter(q => q.chapter_id === ch.id).map((quiz, i) => (
-                                <button
-                                  key={quiz.id}
-                                  className={!isViewed ? "btn btn-ghost" : "btn btn-secondary"}
-                                  style={{ 
-                                    fontSize: '0.85rem', 
-                                    opacity: !isViewed ? 0.6 : 1, 
-                                    cursor: !isViewed ? 'not-allowed' : 'pointer',
-                                    border: !isViewed ? '1px dashed var(--border)' : 'none',
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '0.4rem' 
-                                  }}
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    if (isViewed) selectQuiz(quiz.id); 
-                                    else showToast("Open PDF to unlock quiz", "error");
-                                  }}
-                                  title={!isViewed ? "Open PDF to unlock quiz" : ""}
-                                >
-                                  {!isViewed ? <Lock size={14} /> : <BookOpen size={14} />} 
-                                  Take Quiz: {quiz.title}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Enroll CTA if not enrolled */}
-              {!selectedCourse.enrollment_id && (
-                <div className="lms-card" style={{ marginTop: '1.5rem', textAlign: 'center', background: 'linear-gradient(135deg, #f8faff, #f0f5ff)' }}>
-                  <GraduationCap size={40} color="var(--primary)" style={{ marginBottom: '1rem' }} />
-                  <h3 style={{ marginBottom: '0.5rem' }}>Ready to Start Learning?</h3>
-                  <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Enroll to unlock all {chapters.length} chapters and track your progress.</p>
-                  <button
-                    onClick={() => enrollCourse(selectedCourse.id)}
-                    className="btn btn-primary"
-                    style={{ padding: '0.75rem 2rem' }}
-                    disabled={userRole === 'instructor'}
-                  >
-                    {userRole === 'instructor' ? 'Instructors Cannot Enroll' : 'Enroll in This Course'}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-
-
-
-        {view === 'my-courses' && (
-          <div className="content-wrapper" style={{ width: '100%' }}>
-            <div className="section-header">
-              <h1>My Learning Plan</h1>
-              <p className="text-muted">Track your academic progress across your enrolled courses.</p>
-            </div>
-
-            <div className="course-grid">
-              {myCourses.map((course) => (
-                <div key={course.id} className="lms-card course-card">
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                      <CheckCircle2 size={24} style={{ color: 'var(--secondary)' }} />
-                      <h3 className="course-title" style={{ margin: 0 }}>{course.title}</h3>
-                    </div>
-                    <div className="progress-container">
-                      <div className="progress-label">
-                        <span>Completion</span>
-                        <span>{course.progress_percentage}%</span>
-                      </div>
-                      <div className="progress-bar-bg">
-                        <div
-                          className="progress-bar-fill"
-                          style={{ width: `${course.progress_percentage}%`, background: 'var(--secondary)' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      onClick={() => fetchCourseDetail(course.id, course.enrollment_id)}
-                      className="btn btn-primary"
-                      style={{ flex: 1 }}
-                    >
-                      Study Now
-                    </button>
-                    {course.status === 'completed' ? (
-                      <div className="btn btn-ghost" style={{ flex: 0.5, background: 'var(--success-bg)', color: 'var(--success-text)', fontSize: '0.8rem' }}>
-                        Certificate Available
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleUnenroll(course.enrollment_id)}
-                        className="btn btn-ghost"
-                        style={{ border: '1px solid var(--error)', color: 'var(--error)', padding: '0.5rem', fontSize: '0.85rem' }}
-                        title="Unenroll"
-                      >
-                        Unenroll
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {myCourses.length === 0 && (
-                <div className="empty-state">
-                  <BookOpen size={48} className="text-muted" style={{ marginBottom: '1rem' }} />
-                  <p className="text-muted" style={{ fontWeight: 500 }}>You are not currently enrolled in any courses.</p>
-                  <p className="text-muted" style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Please visit the Course Catalog to register.</p>
-                  <button onClick={() => setView('courses')} className="btn btn-primary" style={{ marginTop: '1.5rem' }}>
-                    Go to Course Catalog
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {view === 'quiz-taking' && activeQuiz && (
-          <div className="content-wrapper" style={{ width: '100%', maxWidth: '800px' }}>
-            <div className="lms-card">
-              <div style={{ paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem' }}>
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem', fontWeight: 700 }}>
-                  <HelpCircle color="var(--primary)" /> {activeQuiz.title}
-                </h2>
-                <p className="text-muted" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Select the most correct answer for each prompt. Ensure all answers are selected before submitting.</p>
-              </div>
-
-              {activeQuiz.questions.map((q, qIndex) => (
-                <div key={q.id} className="quiz-question">
-                  <p>{qIndex + 1}. {q.text}</p>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {q.choices.map(c => (
-                      <label
-                        key={c.id}
-                        className={`quiz-choice ${answers[q.id] === c.id ? 'selected' : ''}`}
-                      >
-                        <input
-                          type="radio"
-                          name={`q-${q.id}`}
-                          checked={answers[q.id] === c.id}
-                          onChange={() => setAnswers({ ...answers, [q.id]: c.id })}
-                          disabled={!!quizResult}
-                          style={{ width: 'auto', margin: 0, boxShadow: 'none', cursor: quizResult ? 'not-allowed' : 'pointer' }}
-                        />
-                        <span style={{ opacity: quizResult ? 0.7 : 1 }}>{c.text}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {!quizResult ? (
-                <button
-                  onClick={submitQuiz}
-                  className="btn btn-primary"
-                  style={{ width: '100%', fontSize: '1.05rem', padding: '1rem' }}
-                  disabled={userRole === 'instructor'}
-                >
-                  {userRole === 'instructor' ? 'Submissions Restricted for Teachers' : 'Submit Assessment'}
-                </button>
-              ) : (
-                <div className="lms-card" style={{ textAlign: 'center', marginTop: '2rem', border: '2px solid var(--border)', background: '#f8fafc' }}>
-                  <Trophy size={48} color={quizResult.passed ? "var(--secondary)" : "var(--error)"} style={{ margin: '0 auto 1rem' }} />
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
-                    {quizResult.passed ? '🎉 Assessment Passed!' : '❌ Assessment Failed'}
-                  </h3>
-                  <p style={{ fontSize: '2.5rem', fontWeight: 800, color: quizResult.passed ? 'var(--secondary)' : 'var(--error)', marginBottom: '0.5rem' }}>
-                    {quizResult.score}%
-                  </p>
-                  <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
-                    You got {quizResult.correct_answers} of {quizResult.total_questions} questions correct.
-                    {!quizResult.passed && ` (Passing score: ${activeQuiz.passing_score}%)`}
-                  </p>
-                  <button onClick={() => { 
-                    if (selectedCourse && selectedCourse.enrollment_id) {
-                      fetchCourseDetail(selectedCourse.id, selectedCourse.enrollment_id);
-                    } else {
-                      setView('my-courses');
-                      fetchMyCourses();
-                    }
-                  }} className="btn btn-ghost" style={{ border: '1px solid var(--border)', margin: '0 auto' }}>
-                    {quizResult.passed ? 'Continue to Next Unit' : 'Review Assessment (Locked)'}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        {view === 'admin-dash' && (
-          <div className="admin-container" style={{ display: 'flex', width: '100%', minHeight: 'calc(100vh - 120px)', gap: '2rem', padding: '1rem' }}>
-            {/* Admin Sidebar */}
-            <aside className="admin-sidebar" style={{ width: '240px', background: 'white', borderRight: '1px solid var(--border)', padding: '1.5rem', height: 'fit-content', position: 'sticky', top: '20px' }}>
-              <div style={{ marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <LayoutDashboard size={22} /> Portal
-                </h2>
-              </div>
-              <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <button 
-                  onClick={() => { setAdminSubView('overview'); fetchAdminStats(); }} 
-                  className={`btn btn-ghost ${adminSubView === 'overview' ? 'active' : ''}`}
-                  style={{ justifyContent: 'flex-start', gap: '0.75rem', padding: '0.8rem 1rem' }}
-                >
-                  <BarChart3 size={20} /> Dashboard
-                </button>
-                <button 
-                  onClick={() => { setAdminSubView('users'); fetchAdminUsers(); }} 
-                  className={`btn btn-ghost ${adminSubView === 'users' ? 'active' : ''}`}
-                  style={{ justifyContent: 'flex-start', gap: '0.75rem', padding: '0.8rem 1rem' }}
-                >
-                  <Users size={20} /> User Management
-                </button>
-                <button 
-                  onClick={() => { setAdminSubView('enrollments'); fetchAdminEnrollments(); }} 
-                  className={`btn btn-ghost ${adminSubView === 'enrollments' ? 'active' : ''}`}
-                  style={{ justifyContent: 'flex-start', gap: '0.75rem', padding: '0.8rem 1rem' }}
-                >
-                  <Trophy size={20} /> Enrollment Registry
-                </button>
-              </nav>
-            </aside>
-
-            {/* Admin Main Content */}
-            <main className="admin-main" style={{ flex: 1 }}>
-              {adminSubView === 'overview' && (
-                <div className="admin-overview">
-                  <div className="section-header" style={{ marginBottom: '2rem' }}>
-                    <h1 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Academic Oversight</h1>
-                    <p className="text-muted">Real-time platform activity and member distribution.</p>
-                  </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                    <div className="lms-card" style={{ padding: '2rem' }}>
-                      <p className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>NETWORK MEMBERS</p>
-                      <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)' }}>{adminStats.total_users || 0}</h2>
-                      <div style={{ height: '4px', width: '40px', background: 'var(--primary)', marginTop: '1rem' }} />
-                    </div>
-                    <div className="lms-card" style={{ padding: '2rem' }}>
-                      <p className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>ACTIVE STUDENTS</p>
-                      <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--secondary)' }}>{adminStats.students || 0}</h2>
-                      <div style={{ height: '4px', width: '40px', background: 'var(--secondary)', marginTop: '1rem' }} />
-                    </div>
-                    <div className="lms-card" style={{ padding: '2rem' }}>
-                      <p className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>FACULTY STAFF</p>
-                      <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#8b5cf6' }}>{adminStats.instructors || 0}</h2>
-                      <div style={{ height: '4px', width: '40px', background: '#8b5cf6', marginTop: '1rem' }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                    <div className="lms-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h4 className="text-muted" style={{ fontSize: '0.85rem' }}>Total Curricular Courses</h4>
-                        <div style={{ fontSize: '2rem', fontWeight: 700 }}>{adminStats.total_courses || 0}</div>
-                      </div>
-                      <BookOpen size={40} className="text-muted" style={{ opacity: 0.2 }} />
-                    </div>
-                    <div className="lms-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h4 className="text-muted" style={{ fontSize: '0.85rem' }}>Enrolled Unique Students</h4>
-                        <div style={{ fontSize: '2rem', fontWeight: 700 }}>{adminStats.total_enrollments || 0}</div>
-                      </div>
-                      <Trophy size={40} className="text-muted" style={{ opacity: 0.2 }} />
-                    </div>
-                  </div>
-
-                  {/* Course Performance Breakdown */}
-                  <div className="lms-card" style={{ padding: '2rem', marginTop: '2.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Course Popularity Index</h3>
-                      <span className="badge" style={{ fontSize: '0.75rem', background: '#f8fafc', color: 'var(--text-muted)' }}>
-                        {adminStats.course_stats?.length || 0} Academic Sections
-                      </span>
-                    </div>
-                    {adminStats.course_stats && adminStats.course_stats.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        {adminStats.course_stats.map((c, idx) => {
-                          const maxCount = adminStats.course_stats[0].count;
-                          const width = (c.count / maxCount) * 100;
-                          return (
-                            <div key={c.course_id}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem', fontSize: '0.9rem' }}>
-                                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{c.title}</span>
-                                <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{c.count} Unique Learners</span>
-                              </div>
-                              <div style={{ height: '10px', background: '#f1f5f9', borderRadius: '5px', overflow: 'hidden' }}>
-                                <div style={{ 
-                                  height: '100%', 
-                                  width: `${width}%`, 
-                                  background: idx === 0 ? 'linear-gradient(90deg, var(--primary), var(--secondary))' : 'var(--secondary)',
-                                  borderRadius: '5px',
-                                  transition: 'width 1s ease-out'
-                                }} />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed var(--border)', borderRadius: '0.75rem', background: '#f8fafc' }}>
-                        <p className="text-muted">No student participation data available for current metrics.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {adminSubView === 'users' && (
-                <div className="admin-users">
-                  <div className="section-header" style={{ marginBottom: '2rem' }}>
-                    <h1 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Member Directory</h1>
-                    <p className="text-muted">Manage system access, roles, and identify inactive accounts.</p>
-                  </div>
-
-                  <div className="lms-card" style={{ padding: '0', border: '1px solid var(--border)' }}>
-                    <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', gap: '1rem', background: '#f8fafc', flexWrap: 'wrap' }}>
-                      <div className="search-bar" style={{ flex: 1, minWidth: '200px', background: 'white' }}>
-                        <Search className="search-icon" size={16} />
-                        <input 
-                          type="text" 
-                          placeholder="Search unique username or email..." 
-                          value={adminSearch} 
-                          onChange={e => { setAdminSearch(e.target.value); fetchAdminUsers(); }} 
-                        />
-                      </div>
-                      <select 
-                        className="btn btn-ghost" 
-                        style={{ border: '1px solid var(--border)', background: 'white', padding: '0 1rem' }}
-                        value={adminRoleFilter}
-                        onChange={e => { setAdminRoleFilter(e.target.value); fetchAdminUsers(); }}
-                      >
-                        <option value="">Filter: All Roles</option>
-                        <option value="student">Role: Student</option>
-                        <option value="instructor">Role: Instructor</option>
-                        <option value="admin">Role: Admin</option>
-                      </select>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', padding: '0 0.5rem' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={adminInactiveFilter} 
-                          onChange={e => { setAdminInactiveFilter(e.target.checked); fetchAdminUsers(); }} 
-                          style={{ width: '18px', height: '18px' }}
-                        />
-                        Flag Inactive Members
-                      </label>
-                    </div>
-
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9' }}>MEMBER DETAILS</th>
-                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9' }}>ACCESS LEVEL</th>
-                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9' }}>LAST ACTIVITY</th>
-                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9' }}>MANAGEMENT</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {adminUsers.length === 0 ? (
-                            <tr><td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No members found matching your criteria.</td></tr>
-                          ) : adminUsers.map(user => (
-                            <tr key={user.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
-                              <td style={{ padding: '1rem 1.5rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>
-                                    {user.username.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <div style={{ fontWeight: 700 }}>{user.username}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email || 'Email not verified'}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td style={{ padding: '1rem 1.5rem' }}>
-                                <select 
-                                  value={user.role} 
-                                  onChange={(e) => handleUpdateUserRole(user.id, e.target.value)}
-                                  className="btn btn-ghost"
-                                  style={{ border: '1px solid var(--border)', fontSize: '0.85rem', height: '32px', background: 'white' }}
-                                  disabled={userId == user.id}
-                                >
-                                  <option value="student">Student</option>
-                                  <option value="instructor">Instructor</option>
-                                  <option value="admin">Admin</option>
-                                </select>
-                              </td>
-                              <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem' }}>
-                                {user.last_login ? (
-                                  <span style={{ color: (new Date() - new Date(user.last_login)) > 15552000000 ? 'var(--error)' : 'inherit' }}>
-                                    {new Date(user.last_login).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                  </span>
-                                ) : (
-                                  <span style={{ color: 'var(--error)', fontWeight: 600 }}>Never Logged In</span>
-                                )}
-                              </td>
-                              <td style={{ padding: '1rem 1.5rem' }}>
-                                <button 
-                                  onClick={() => handleDeleteUser(user.id)} 
-                                  className="btn btn-ghost" 
-                                  style={{ color: 'var(--error)', padding: '0.5rem', borderRadius: '0.5rem' }}
-                                  title="Permanently Delete Account"
-                                  disabled={userId == user.id}
-                                >
-                                  <Trash2 size={20} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {adminSubView === 'enrollments' && (
-                <div className="admin-enrollments">
-                  <div className="section-header" style={{ marginBottom: '2rem' }}>
-                    <h1 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Enrollment Registry</h1>
-                    <p className="text-muted">Global tracking of student participation and course completion rates.</p>
-                  </div>
-
-                  <div className="lms-card" style={{ padding: '0', border: '1px solid var(--border)' }}>
-                    <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', gap: '1rem', background: '#f8fafc' }}>
-                      <div className="search-bar" style={{ flex: 1, background: 'white' }}>
-                        <Search className="search-icon" size={16} />
-                        <input 
-                          type="text" 
-                          placeholder="Search student or course..." 
-                          value={adminEnrollmentSearch} 
-                          onChange={e => setAdminEnrollmentSearch(e.target.value)} 
-                        />
-                      </div>
-                    </div>
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9' }}>STUDENT</th>
-                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9' }}>COURSE</th>
-                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9' }}>PROGRESS</th>
-                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9' }}>STATUS</th>
-                            <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9' }}>ENROLLED ON</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {adminEnrollments
-                            .filter(enroll => {
-                              const s = adminEnrollmentSearch.toLowerCase();
-                              return enroll.student_name.toLowerCase().includes(s) || 
-                                     (enroll.student_email && enroll.student_email.toLowerCase().includes(s)) ||
-                                     enroll.course_title.toLowerCase().includes(s);
-                            })
-                            .length === 0 ? (
-                            <tr><td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No enrollments found matching your search.</td></tr>
-                          ) : adminEnrollments
-                            .filter(enroll => {
-                              const s = adminEnrollmentSearch.toLowerCase();
-                              return enroll.student_name.toLowerCase().includes(s) || 
-                                     (enroll.student_email && enroll.student_email.toLowerCase().includes(s)) ||
-                                     enroll.course_title.toLowerCase().includes(s);
-                            })
-                            .map(enroll => (
-                            <tr key={enroll.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                              <td style={{ padding: '1rem 1.5rem' }}>
-                                <div style={{ fontWeight: 700 }}>{enroll.student_name}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{enroll.student_email || 'No email provided'}</div>
-                              </td>
-                              <td style={{ padding: '1rem 1.5rem' }}>
-                                <div style={{ fontWeight: 600 }}>{enroll.course_title}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {enroll.course_id}</div>
-                              </td>
-                              <td style={{ padding: '1rem 1.5rem' }}>
-                                <div style={{ width: '120px' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.2rem' }}>
-                                    <span>Progress</span>
-                                    <span>{enroll.progress_percentage}%</span>
-                                  </div>
-                                  <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', width: `${enroll.progress_percentage}%`, background: enroll.progress_percentage === 100 ? 'var(--secondary)' : 'var(--primary)' }} />
-                                  </div>
-                                </div>
-                              </td>
-                              <td style={{ padding: '1rem 1.5rem' }}>
-                                <span style={{ 
-                                  padding: '0.25rem 0.6rem', 
-                                  borderRadius: '1rem', 
-                                  fontSize: '0.7rem', 
-                                  fontWeight: 600,
-                                  textTransform: 'uppercase',
-                                  background: enroll.status === 'completed' ? '#f0fdf4' : '#eff6ff',
-                                  color: enroll.status === 'completed' ? '#166534' : '#1e40af',
-                                  border: enroll.status === 'completed' ? '1px solid #bbf7d0' : '1px solid #bfdbfe'
-                                }}>
-                                  {enroll.status}
-                                </span>
-                              </td>
-                              <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem' }}>
-                                {new Date(enroll.enrolled_at).toLocaleDateString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </main>
-          </div>
-        )}
+      {/* Content Area */}
+      <main className="pt-24 min-h-screen bg-[var(--bg-app)]">
+        {children}
       </main>
 
       {message && (
@@ -2261,5 +1173,246 @@ function App() {
       )}
     </div>
   );
+};
+
+
+  // Wrapper for all authenticated views
+  const renderAuthenticatedView = () => {
+    if (view === 'course-detail' && selectedCourse) {
+      return (
+        <CourseDetailView
+          selectedCourse={selectedCourse}
+          chapters={chapters}
+          chapterProgress={chapterProgress}
+          quizzes={quizzes}
+          expandedChapter={expandedChapter}
+          setExpandedChapter={setExpandedChapter}
+          enrollCourse={enrollCourse}
+          handleMarkChapterViewed={handleMarkChapterViewed}
+          selectQuiz={selectQuiz}
+          userRole={userRole}
+          setView={setView}
+          showToast={showToast}
+          fetchMyCourses={fetchMyCourses}
+          studyMode={studyMode}
+          setStudyMode={setStudyMode}
+          fetchCourseRoster={fetchCourseRoster}
+        />
+      );
+    }
+
+    if (view === 'my-courses') {
+      return (
+        <MyCoursesView
+          myCourses={myCourses}
+          fetchCourseDetail={fetchCourseDetail}
+          handleUnenroll={handleUnenroll}
+          userRole={userRole}
+          setView={setView}
+          fetchMyCourses={fetchMyCourses}
+          fetchInstructorCourses={fetchInstructorCourses}
+          setSelectedCourse={setSelectedCourse}
+          setNewCourse={setNewCourse}
+        />
+      );
+    }
+
+    if (view === 'quiz-taking' && activeQuiz) {
+      return (
+        <QuizView
+          activeQuiz={activeQuiz}
+          activeAttempt={activeAttempt}
+          answers={answers}
+          setAnswers={setAnswers}
+          quizResult={quizResult}
+          submitQuiz={submitQuiz}
+          userRole={userRole}
+          selectedCourse={selectedCourse}
+          setView={setView}
+          fetchMyCourses={fetchMyCourses}
+          setStudyMode={setStudyMode}
+        />
+      );
+    }
+
+    if (view === 'instructor-dash') {
+      if (userRole !== 'instructor' && userRole !== 'teacher') { setView('courses'); return null; }
+      return (
+        <InstructorDashView
+          instructorCourses={instructorCourses}
+          fetchCourseRoster={fetchCourseRoster}
+          setSelectedCourse={setSelectedCourse}
+          setNewCourse={setNewCourse}
+          setView={setView}
+          handleDeleteCourse={handleDeleteCourse}
+          fetchInstructorCourses={fetchInstructorCourses}
+          instructorStats={instructorStats}
+          userProfile={userProfile}
+          username={username}
+          logout={logout}
+          dropdownRef={dropdownRef}
+          dropdownOpen={dropdownOpen}
+          setDropdownOpen={setDropdownOpen}
+        />
+      );
+    }
+
+    if (view === 'course-editor') {
+      if (userRole !== 'instructor' && userRole !== 'teacher') { setView('courses'); return null; }
+      return (
+        <CourseEditorView
+          selectedCourse={selectedCourse}
+          newCourse={newCourse}
+          setNewCourse={setNewCourse}
+          handleSaveCourse={handleSaveCourse}
+          chapters={chapters}
+          newChapter={newChapter}
+          setNewChapter={setNewChapter}
+          handleCreateChapter={handleCreateChapter}
+          handleDeleteChapter={handleDeleteChapter}
+          handleUpdateChapter={handleUpdateChapter}
+          editingChapterId={editingChapterId}
+          setEditingChapterId={setEditingChapterId}
+          editChapterData={editChapterData}
+          setEditChapterData={setEditChapterData}
+          quizzes={quizzes}
+          addingQuizToChapter={addingQuizToChapter}
+          setAddingQuizToChapter={setAddingQuizToChapter}
+          newQuiz={newQuiz}
+          setNewQuiz={setNewQuiz}
+          handleCreateQuiz={handleCreateQuiz}
+          addingQuestionToQuiz={addingQuestionToQuiz}
+          setAddingQuestionToQuiz={setAddingQuestionToQuiz}
+          newQuestion={newQuestion}
+          setNewQuestion={setNewQuestion}
+          handleAddQuestion={handleAddQuestion}
+          allowedSpecializations={allowedSpecializations}
+          setView={setView}
+          showToast={showToast}
+          handleDeleteChapterPDF={handleDeleteChapterPDF}
+          fetchCourseRoster={fetchCourseRoster}
+          fetchInstructorCourses={fetchInstructorCourses}
+        />
+      );
+    }
+
+    if (view === 'course-roster') {
+      if (userRole !== 'instructor' && userRole !== 'teacher') { setView('courses'); return null; }
+      return (
+        <CourseRosterView
+          enrollments={instructorEnrollments}
+          selectedCourse={selectedCourse}
+          setView={setView}
+        />
+      );
+    }
+
+    if (view === 'admin-dash') {
+      return (
+        <AdminDashView
+          adminStats={adminStats}
+          studentStats={studentStats}
+          adminUsers={adminUsers}
+          fetchAdminUsers={fetchAdminUsers}
+          fetchAdminStats={fetchAdminStats}
+          handleUpdateUserRole={handleUpdateUserRole}
+          handleDeleteUser={handleDeleteUser}
+          userProfile={userProfile}
+          username={username}
+          logout={logout}
+          setView={setView}
+          dropdownRef={dropdownRef}
+          dropdownOpen={dropdownOpen}
+          setDropdownOpen={setDropdownOpen}
+        />
+      );
+    }
+
+    if (view === 'admin-users') {
+      return (
+        <AdminUserListView
+          adminUsers={adminUsers}
+          adminStats={adminStats}
+          handleUpdateUserRole={handleUpdateUserRole}
+          handleDeleteUser={handleDeleteUser}
+          adminSearch={adminSearch}
+          setAdminSearch={setAdminSearch}
+          adminRoleFilter={adminRoleFilter}
+          setAdminRoleFilter={setAdminRoleFilter}
+          setView={setView}
+        />
+      );
+    }
+
+    if (view === 'profile') {
+      return (
+        <ProfileView
+          userProfile={userProfile}
+          userRole={userRole}
+          username={username}
+          profilePicFile={profilePicFile}
+          setProfilePicFile={setProfilePicFile}
+          bioInput={bioInput}
+          setBioInput={setBioInput}
+          handleUpdateProfile={handleUpdateProfile}
+          showToast={showToast}
+          setView={setView}
+        />
+      );
+    }
+
+    return (
+      <CoursesView
+        courses={courses}
+        fetchCourseDetail={fetchCourseDetail}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        domainFilter={domainFilter}
+        setDomainFilter={setDomainFilter}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+        userRole={userRole}
+        catalogDomains={catalogDomains}
+        catalogSpecializations={catalogSpecializations}
+        selDomainId={selDomainId}
+        setSelDomainId={setSelDomainId}
+        selSpecId={selSpecId}
+        setSelSpecId={setSelSpecId}
+        catalogPage={catalogPage}
+        setCatalogPage={setCatalogPage}
+        catalogTotalPages={catalogTotalPages}
+        setCatalogTotalPages={setCatalogTotalPages}
+        setView={setView}
+        userProfile={userProfile}
+        fetchFilteredSpecs={fetchFilteredSpecs}
+        setCatalogSpecializations={setCatalogSpecializations}
+      />
+    );
+  };
+
+  return (
+    <GlobalShell
+      userRole={userRole}
+      view={view}
+      setView={setView}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      setCatalogPage={setCatalogPage}
+      theme={theme}
+      toggleTheme={toggleTheme}
+      dropdownRef={dropdownRef}
+      dropdownOpen={dropdownOpen}
+      setDropdownOpen={setDropdownOpen}
+      username={username}
+      userProfile={userProfile}
+      profilePicFile={profilePicFile}
+      logout={logout}
+      message={message}
+      msgType={msgType}
+    >
+      {renderAuthenticatedView()}
+    </GlobalShell>
+  );
 }
+
 export default App;

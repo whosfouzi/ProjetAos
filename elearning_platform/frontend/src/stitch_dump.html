@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Luminescent Scholar | Master Admin</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed-dim": "#ffb783",
+            "on-primary-fixed": "#07006c",
+            "secondary-container": "#6f00be",
+            "tertiary": "#ffb783",
+            "error-container": "#93000a",
+            "surface-dim": "#0b1326",
+            "on-primary": "#1000a9",
+            "inverse-surface": "#dae2fd",
+            "inverse-primary": "#494bd6",
+            "error": "#ffb4ab",
+            "on-secondary-fixed-variant": "#6900b3",
+            "outline": "#908fa0",
+            "inverse-on-surface": "#283044",
+            "on-surface": "#dae2fd",
+            "tertiary-fixed": "#ffdcc5",
+            "primary": "#c0c1ff",
+            "surface-container-high": "#222a3d",
+            "on-tertiary": "#4f2500",
+            "surface-variant": "#2d3449",
+            "surface-container-lowest": "#060e20",
+            "surface-tint": "#c0c1ff",
+            "on-tertiary-container": "#452000",
+            "on-primary-container": "#0d0096",
+            "on-error-container": "#ffdad6",
+            "surface-container-low": "#131b2e",
+            "primary-fixed": "#e1e0ff",
+            "on-secondary-fixed": "#2c0051",
+            "outline-variant": "#464554",
+            "secondary-fixed": "#f0dbff",
+            "primary-container": "#8083ff",
+            "on-error": "#690005",
+            "background": "#0b1326",
+            "on-tertiary-fixed-variant": "#703700",
+            "on-secondary-container": "#d6a9ff",
+            "tertiary-container": "#d97721",
+            "on-primary-fixed-variant": "#2f2ebe",
+            "on-background": "#dae2fd",
+            "surface-bright": "#31394d",
+            "surface": "#0b1326",
+            "on-secondary": "#490080",
+            "surface-container-highest": "#2d3449",
+            "secondary-fixed-dim": "#ddb7ff",
+            "primary-fixed-dim": "#c0c1ff",
+            "secondary": "#ddb7ff",
+            "surface-container": "#171f33",
+            "on-tertiary-fixed": "#301400",
+            "on-surface-variant": "#c7c4d7"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Manrope"],
+            "display": ["Manrope"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b1326;
+      font-family: 'Inter', sans-serif;
+      color: #dae2fd;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .glass-panel {
+      background: rgba(45, 52, 73, 0.4);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .text-gradient-primary {
+      background: linear-gradient(135deg, #c0c1ff 0%, #ddb7ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .glow-border {
+      box-shadow: 0 0 15px rgba(192, 193, 255, 0.1);
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+
+<body class="flex min-h-screen overflow-x-hidden">
+  <!-- Sidebar Navigation -->
+  <aside
+    class="h-screen sticky left-0 top-0 w-72 overflow-y-auto bg-[#0b1326] border-r border-white/5 shadow-[20px_0_40px_rgba(0,0,0,0.3)] flex flex-col py-10 h-full justify-between z-40 hidden md:flex">
+    <div>
+      <div class="text-lg font-black text-[#c0c1ff] mb-8 px-6 font-['Manrope']">
+        Luminescent Scholar
+      </div>
+      <nav class="flex flex-col space-y-1">
+        <a class="text-slate-500 px-6 py-4 flex items-center gap-4 hover:text-[#ddb7ff] transition-colors duration-200 font-['Manrope'] text-[0.8125rem] font-semibold uppercase tracking-wider"
+          href="#">
+          <span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+          Dashboard
+        </a>
+        <a class="bg-gradient-to-r from-[#c0c1ff]/15 to-transparent text-[#c0c1ff] border-l-4 border-[#c0c1ff] px-6 py-4 flex items-center gap-4 transition-all duration-200 font-['Manrope'] text-[0.8125rem] font-semibold uppercase tracking-wider"
+          href="#">
+          <span class="material-symbols-outlined" data-icon="group">group</span>
+          User Management
+        </a>
+        <a class="text-slate-500 px-6 py-4 flex items-center gap-4 hover:text-[#ddb7ff] transition-colors duration-200 font-['Manrope'] text-[0.8125rem] font-semibold uppercase tracking-wider"
+          href="#">
+          <span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+          Course Catalog
+        </a>
+        <a class="text-slate-500 px-6 py-4 flex items-center gap-4 hover:text-[#ddb7ff] transition-colors duration-200 font-['Manrope'] text-[0.8125rem] font-semibold uppercase tracking-wider"
+          href="#">
+          <span class="material-symbols-outlined" data-icon="payments">payments</span>
+          Financials
+        </a>
+        <a class="text-slate-500 px-6 py-4 flex items-center gap-4 hover:text-[#ddb7ff] transition-colors duration-200 font-['Manrope'] text-[0.8125rem] font-semibold uppercase tracking-wider"
+          href="#">
+          <span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+          Security
+        </a>
+        <a class="text-slate-500 px-6 py-4 flex items-center gap-4 hover:text-[#ddb7ff] transition-colors duration-200 font-['Manrope'] text-[0.8125rem] font-semibold uppercase tracking-wider"
+          href="#">
+          <span class="material-symbols-outlined" data-icon="settings">settings</span>
+          Global Settings
+        </a>
+      </nav>
+    </div>
+    <div class="px-6">
+      <div class="flex items-center gap-3 p-4 glass-panel rounded-xl border border-white/5 mb-6">
+        <img alt="System Administrator" class="w-10 h-10 rounded-full border-2 border-primary/30"
+          data-alt="close-up portrait of a professional male administrator with a confident expression in a tech office environment"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwSVy0U6jzNZD8FSukf0u_BMc504CW6fHb3iRS7U65AYKSYrEYHBXyr9To9ICag3w3jCyasjZDHOcduWJjA4XR9UO34gF_bDpQE3WLG-zyeNidTssSLzr4tXcLtO2qWPGQpep5DPq04VoskJFsof21iTzbV93gWOS9KeTw4R2sft0oFly19KQ-Ku6jKCgG6Gn8mhYCH1-R0r4gAGmCDljTo_6BXK3A7UzZIQHIp3u8sepcVPXb6dj8mwgiZUfkLlIbZ072k6BDQJ4" />
+        <div class="flex flex-col">
+          <span class="text-white text-sm font-bold">Admin Core</span>
+          <span class="text-slate-400 text-[10px] uppercase tracking-widest">Super User Access</span>
+        </div>
+      </div>
+      <button
+        class="w-full py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary-fixed font-bold rounded-full text-xs uppercase tracking-widest transition-all hover:shadow-[0_0_20px_rgba(192,193,255,0.4)] active:scale-95">
+        Generate Reports
+      </button>
+    </div>
+  </aside>
+  <!-- Main Content -->
+  <main class="flex-1 min-w-0 bg-surface">
+    <!-- Top Bar -->
+    <header
+      class="docked full-width top-0 z-50 bg-[#0b1326]/80 backdrop-blur-lg flex justify-between items-center w-full px-8 h-20 shadow-2xl shadow-black/40 bg-gradient-to-b from-[#0b1326] to-transparent sticky top-0">
+      <div class="flex items-center gap-8">
+        <h1 class="text-xl font-extrabold tracking-tighter text-white font-['Manrope']">Luminescent Scholar</h1>
+        <nav class="hidden lg:flex items-center gap-6">
+          <a class="text-slate-400 font-medium hover:text-white transition-all duration-300 ease-in-out active:scale-95 font-['Manrope']"
+            href="#">Analytics</a>
+          <a class="text-slate-400 font-medium hover:text-white transition-all duration-300 ease-in-out active:scale-95 font-['Manrope']"
+            href="#">System Log</a>
+          <a class="text-slate-400 font-medium hover:text-white transition-all duration-300 ease-in-out active:scale-95 font-['Manrope']"
+            href="#">Audit</a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-1">
+          <button
+            class="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-300"><span
+              class="material-symbols-outlined" data-icon="notifications">notifications</span></button>
+          <button
+            class="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-300"><span
+              class="material-symbols-outlined" data-icon="settings">settings</span></button>
+          <button
+            class="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-300"><span
+              class="material-symbols-outlined" data-icon="help">help</span></button>
+        </div>
+      </div>
+    </header>
+    <div class="p-8 max-w-[1600px] mx-auto space-y-12">
+      <!-- Hero Heading -->
+      <section class="space-y-2">
+        <h2 class="text-5xl lg:text-7xl font-extrabold tracking-tight font-headline text-white">
+          System <span class="text-gradient-primary">Overview</span>
+        </h2>
+        <p class="text-on-surface-variant max-w-xl font-body">Real-time performance metrics and user engagement
+          distribution across the global digital learning ecosystem.</p>
+      </section>
+      <!-- Stats Bento Grid -->
+      <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Card 1 -->
+        <div
+          class="glass-panel rounded-2xl p-6 border border-white/5 glow-border transition-all hover:translate-y-[-4px] hover:bg-white/5 duration-300 relative overflow-hidden group">
+          <div
+            class="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all">
+          </div>
+          <div class="flex flex-col h-full justify-between gap-8">
+            <div class="flex justify-between items-start">
+              <span class="text-primary material-symbols-outlined text-4xl" data-icon="person_add">person_add</span>
+              <span
+                class="text-green-400 text-xs font-bold font-label px-2 py-1 bg-green-400/10 rounded-full">+12%</span>
+            </div>
+            <div>
+              <p class="text-on-surface-variant text-xs font-label uppercase tracking-widest mb-1">Total Users</p>
+              <h3 class="text-3xl font-black font-display text-white">124,500</h3>
+            </div>
+          </div>
+        </div>
+        <!-- Card 2 -->
+        <div
+          class="glass-panel rounded-2xl p-6 border border-white/5 glow-border transition-all hover:translate-y-[-4px] hover:bg-white/5 duration-300 relative overflow-hidden group">
+          <div
+            class="absolute -right-4 -top-4 w-24 h-24 bg-secondary/10 rounded-full blur-2xl group-hover:bg-secondary/20 transition-all">
+          </div>
+          <div class="flex flex-col h-full justify-between gap-8">
+            <div class="flex justify-between items-start">
+              <span class="text-secondary material-symbols-outlined text-4xl" data-icon="payments">payments</span>
+              <span
+                class="text-green-400 text-xs font-bold font-label px-2 py-1 bg-green-400/10 rounded-full">Active</span>
+            </div>
+            <div>
+              <p class="text-on-surface-variant text-xs font-label uppercase tracking-widest mb-1">Total Revenue</p>
+              <h3 class="text-3xl font-black font-display text-white">$1,240,000</h3>
+            </div>
+          </div>
+        </div>
+        <!-- Card 3 -->
+        <div
+          class="glass-panel rounded-2xl p-6 border border-white/5 glow-border transition-all hover:translate-y-[-4px] hover:bg-white/5 duration-300 relative overflow-hidden group">
+          <div
+            class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/10 rounded-full blur-2xl group-hover:bg-tertiary/20 transition-all">
+          </div>
+          <div class="flex flex-col h-full justify-between gap-8">
+            <div class="flex justify-between items-start">
+              <span class="text-tertiary material-symbols-outlined text-4xl" data-icon="analytics">analytics</span>
+              <span class="text-primary text-xs font-bold font-label px-2 py-1 bg-primary/10 rounded-full">Target
+                80%</span>
+            </div>
+            <div>
+              <p class="text-on-surface-variant text-xs font-label uppercase tracking-widest mb-1">Completion Rate</p>
+              <h3 class="text-3xl font-black font-display text-white">78.4%</h3>
+            </div>
+          </div>
+        </div>
+        <!-- Card 4 -->
+        <div
+          class="glass-panel rounded-2xl p-6 border border-white/5 glow-border transition-all hover:translate-y-[-4px] hover:bg-white/5 duration-300 relative overflow-hidden group">
+          <div
+            class="absolute -right-4 -top-4 w-24 h-24 bg-primary-container/10 rounded-full blur-2xl group-hover:bg-primary-container/20 transition-all">
+          </div>
+          <div class="flex flex-col h-full justify-between gap-8">
+            <div class="flex justify-between items-start">
+              <span class="text-[#8083ff] material-symbols-outlined text-4xl" data-icon="school">school</span>
+              <span class="text-white/40 text-xs font-bold font-label px-2 py-1 bg-white/5 rounded-full">Live</span>
+            </div>
+            <div>
+              <p class="text-on-surface-variant text-xs font-label uppercase tracking-widest mb-1">Active Enrollments
+              </p>
+              <h3 class="text-3xl font-black font-display text-white">45,120</h3>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Main Interactive Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Tabbed Data Table (User Management) -->
+        <section class="lg:col-span-8 space-y-6">
+          <div class="flex items-center justify-between">
+            <div class="flex gap-1 p-1 glass-panel rounded-full border border-white/5">
+              <button
+                class="px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-primary text-on-primary-fixed transition-all">User
+                Management</button>
+              <button
+                class="px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-all">Content
+                Moderation</button>
+              <button
+                class="px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-all">Logs</button>
+            </div>
+          </div>
+          <div class="glass-panel rounded-[2rem] border border-white/5 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-white/5">
+                    <th class="px-6 py-5 text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-white/40">Avatar
+                      &amp; Name</th>
+                    <th class="px-6 py-5 text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-white/40">Role</th>
+                    <th class="px-6 py-5 text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-white/40">Status
+                    </th>
+                    <th
+                      class="px-6 py-5 text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-white/40 text-right">
+                      Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 font-body">
+                  <tr class="hover:bg-white/5 transition-colors group">
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-3">
+                        <img alt="User Avatar" class="w-10 h-10 rounded-full"
+                          data-alt="vibrant portrait of a professional woman smiling in a bright studio with soft lighting"
+                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDr032SUac2rQsFaSFSDUgqSyaSlcEhb0q-cwV7hU6w1OqtfrpZLjoZ5rslxGfpqaTmd__Xikl0qF7diuUIRCSZiUoJLi7p5E9u99fH4rPEJYLB7q9A3I-tKzisGDMLtOq0bMgQVS4_HbfMi8JTKWUk5xxlIZbELN7_AiWDFUhcJ9WJCevJR2_ldFweyreEB8RyJ3GOJUN2iX0b4FTkeYCiZyB4qSKlMQxe0NvlSBga_l1bLTtjcaOyMAKqWlJEjUFgDBysNemVxsE" />
+                        <div class="flex flex-col">
+                          <span class="text-white font-semibold">Elena Rostova</span>
+                          <span class="text-xs text-white/30">elena.r@scholaraura.edu</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span
+                        class="bg-secondary-container/30 text-secondary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-secondary/20">Instructor</span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                        <span class="text-xs font-medium">Active</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <label class="inline-flex items-center cursor-pointer">
+                        <input checked="" class="sr-only peer" type="checkbox" />
+                        <div
+                          class="relative w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+                        </div>
+                      </label>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-white/5 transition-colors group">
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-3">
+                        <img alt="User Avatar" class="w-10 h-10 rounded-full"
+                          data-alt="sharp portrait of a young man wearing glasses with professional lighting and blurred tech background"
+                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6w3Hcqd9d1wu6-8QMgdoH9K4fpESlCQ3UY5iZdHxFGD_e8VsBXu_6UA4ORFMaxqYtUh0Nd9uEbdBkZLoNepFrBBDV6d15va6WSfrmEwoQwtXYmRQS43SUKOq-N33yWYtMoNxSXArqyYIsWrl5NFV36E1FEBDm1oJyW_uqvPnmqlnTPem8CmcUlA5i5e0KJM0qQXsuYTGS5dpPwPWKXUuTi6qZJamkOhGx5vZeaFsF3DQX6Q9Uou9cBWOkB8nUjahZL7zWx0l8EDI" />
+                        <div class="flex flex-col">
+                          <span class="text-white font-semibold">Julian Chen</span>
+                          <span class="text-xs text-white/30">j.chen@scholaraura.edu</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span
+                        class="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-primary/20">Student</span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                        <span class="text-xs font-medium">Active</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <label class="inline-flex items-center cursor-pointer">
+                        <input checked="" class="sr-only peer" type="checkbox" />
+                        <div
+                          class="relative w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+                        </div>
+                      </label>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-white/5 transition-colors group">
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-3">
+                        <img alt="User Avatar" class="w-10 h-10 rounded-full"
+                          data-alt="professional portrait of a woman with a confident smile in a minimal modern office setting"
+                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuAL15uotbpUXKBwGCXiWk83nSjQOsAJfFllGCCBFApBFnHyGKQ0JeiCxPeRt9WpQv4EKNpksaw9GOMuGYEcUsjxDO6UBZ2Hxdpm8QoYfqO4dE74-27Nu5SZ-p6qWxLFZ1PtIH7AThzEp1hL9wXwRnOhBy-rSxnzozpQ-4ad16z0om2n0Y7YoL-feUtjuJ6tTjCkIL6ZOSrh5KIHKgimDzn_31whUkG_ueCbfMiyMokIOD21uk8Ugsor0JfOPHpuAmTXXkUEOQskJPY" />
+                        <div class="flex flex-col">
+                          <span class="text-white font-semibold">Sarah Jenkins</span>
+                          <span class="text-xs text-white/30">sarah.j@scholaraura.edu</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span
+                        class="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-primary/20">Student</span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                        <span class="text-xs font-medium text-white/40">Inactive</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <label class="inline-flex items-center cursor-pointer">
+                        <input class="sr-only peer" type="checkbox" />
+                        <div
+                          class="relative w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+                        </div>
+                      </label>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="p-6 bg-white/5 flex justify-center">
+              <button
+                class="text-primary text-xs font-bold uppercase tracking-widest hover:underline transition-all">View All
+                124k Users</button>
+            </div>
+          </div>
+        </section>
+        <!-- Sidebar Widgets -->
+        <aside class="lg:col-span-4 space-y-8">
+          <!-- System Health Widget -->
+          <div class="glass-panel rounded-[2rem] border border-white/5 p-8 relative overflow-hidden group">
+            <h4 class="text-white font-bold font-display mb-8 text-lg flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary" data-icon="monitor_heart">monitor_heart</span>
+              System Health
+            </h4>
+            <div class="space-y-6">
+              <!-- Service 1 -->
+              <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-white">Auth Service</span>
+                  <span class="text-[10px] text-white/30 uppercase tracking-widest">Global SSO</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-[10px] font-bold text-green-400 uppercase">Online</span>
+                  <div class="w-3 h-3 rounded-full bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.8)] animate-pulse">
+                  </div>
+                </div>
+              </div>
+              <!-- Service 2 -->
+              <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-white">Database</span>
+                  <span class="text-[10px] text-white/30 uppercase tracking-widest">Primary Cluster</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-[10px] font-bold text-green-400 uppercase">Online</span>
+                  <div class="w-3 h-3 rounded-full bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.8)] animate-pulse">
+                  </div>
+                </div>
+              </div>
+              <!-- Service 3 -->
+              <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-white">Media CDN</span>
+                  <span class="text-[10px] text-white/30 uppercase tracking-widest">Edge Assets</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-[10px] font-bold text-green-400 uppercase">Online</span>
+                  <div class="w-3 h-3 rounded-full bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.8)] animate-pulse">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-8 pt-6 border-t border-white/5">
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-white/40">Uptime (30d)</span>
+                <span class="text-primary font-bold">99.998%</span>
+              </div>
+            </div>
+          </div>
+          <!-- Additional Context Card -->
+          <div
+            class="glass-panel rounded-[2rem] border border-white/5 p-8 bg-gradient-to-br from-secondary-container/20 to-transparent">
+            <div class="mb-4">
+              <span class="material-symbols-outlined text-4xl text-secondary"
+                data-icon="auto_awesome">auto_awesome</span>
+            </div>
+            <h4 class="text-white font-bold text-xl mb-2 font-display">System Insight</h4>
+            <p class="text-on-surface-variant text-sm leading-relaxed mb-6 font-body">Revenue has increased by 14% since
+              the last update. High engagement detected in 'Data Science' path.</p>
+            <button
+              class="text-xs font-bold uppercase tracking-widest px-6 py-3 border border-secondary text-secondary rounded-full hover:bg-secondary/10 transition-all">Optimize
+              Clusters</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <!-- Bottom Mobile Nav (Only visible on mobile) -->
+  <nav
+    class="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-white/5 flex justify-around items-center h-16 px-4 z-50">
+    <button class="text-primary"><span class="material-symbols-outlined" data-icon="dashboard">dashboard</span></button>
+    <button class="text-white/40"><span class="material-symbols-outlined" data-icon="group">group</span></button>
+    <button class="text-white/40"><span class="material-symbols-outlined"
+        data-icon="library_books">library_books</span></button>
+    <button class="text-white/40"><span class="material-symbols-outlined" data-icon="settings">settings</span></button>
+  </nav>
+</body>
+
+</html>

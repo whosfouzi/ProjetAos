@@ -49,26 +49,78 @@ class QuizViewSet(viewsets.ModelViewSet):
         quiz = self.get_object()
         user_answers = request.data.get('answers', {})
         
-        # Singleton Attempt Model: Always update the latest record or create new
-        attempt, created = QuizAttempt.objects.update_or_create(
+        # Check attempts
+        completed_attempts = QuizAttempt.objects.filter(
+            quiz=quiz, student_id=request.user.id, completed_at__isnull=False
+        ).count()
+        
+        if completed_attempts >= 2:
+            return Response(
+                {'error': 'Maximum attempts reached (2/2)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get the latest open attempt or create one
+        attempt = QuizAttempt.objects.filter(
             quiz=quiz,
             student_id=request.user.id,
-            defaults={'started_at': timezone.now()}
-        )
+            completed_at__isnull=True
+        ).order_by('-started_at').first()
         
-        # Clear previous answers on each new full submission to ensure data integrity
+        if not attempt:
+            # If no open attempt, we create one but it should've been created via 'start'
+            # For compatibility with legacy 'submit', we create one here
+            from django.db.models import Max
+            last_attempt = QuizAttempt.objects.filter(quiz=quiz, student_id=request.user.id).aggregate(Max('attempt_number'))
+            attempt_num = (last_attempt['attempt_number__max'] or 0) + 1
+            
+            attempt = QuizAttempt.objects.create(
+                quiz=quiz,
+                student_id=request.user.id,
+                attempt_number=attempt_num
+            )
+            # Intelligent Pool Selection: Prioritize questions NOT seen in previous attempts
+            import random
+            all_questions_pool = list(quiz.questions.all().values_list('id', flat=True))
+            
+            # Find questions seen in previous attempts
+            seen_question_ids = Answer.objects.filter(
+                attempt__quiz=quiz,
+                attempt__student_id=request.user.id
+            ).values_list('question_id', flat=True).distinct()
+            
+            # Filter pool to unseen questions
+            unseen_pool = [qid for qid in all_questions_pool if qid not in seen_question_ids]
+            
+            if len(unseen_pool) >= quiz.questions_per_attempt:
+                # We have enough fresh questions!
+                selected_ids = random.sample(unseen_pool, quiz.questions_per_attempt)
+            else:
+                # Pool is exhausted or too small - combine unseen with some seen ones to fill the set
+                random.shuffle(all_questions_pool)
+                combined = list(unseen_pool) + [qid for qid in all_questions_pool if qid not in unseen_pool]
+                selected_ids = combined[:quiz.questions_per_attempt]
+                random.shuffle(selected_ids) # Final shuffle
+                
+            attempt.selected_questions = selected_ids
+            attempt.save()
+
+        # Clear previous answers on this specific attempt
         attempt.answers.all().delete()
         
         total_points = 0
-        total_questions = quiz.questions.count()
         correct_count = 0
         
-        for question in quiz.questions.all():
+        # Use only selected questions for this attempt
+        selected_question_ids = attempt.selected_questions or []
+        questions = Question.objects.filter(id__in=selected_question_ids)
+        
+        for question in questions:
             answer_val = user_answers.get(str(question.id))
             is_correct = False
             points_earned = 0
             
-            if question.question_type == 'MCQ' or question.question_type == 'TRUE_FALSE':
+            if question.question_type in ['MCQ', 'TRUE_FALSE']:
                 if answer_val:
                     try:
                         choice = Choice.objects.get(id=answer_val, question=question)
@@ -89,7 +141,7 @@ class QuizViewSet(viewsets.ModelViewSet):
             )
             total_points += points_earned
             
-        max_points = sum(q.points for q in quiz.questions.all())
+        max_points = sum(q.points for q in questions)
         percentage = int((total_points / max_points * 100)) if max_points > 0 else 0
         
         attempt.score = total_points
@@ -101,18 +153,20 @@ class QuizViewSet(viewsets.ModelViewSet):
         if percentage >= quiz.passing_score:
             try:
                 from .producer import publish_quiz_passed
-                publish_quiz_passed(request.user.id, quiz.course_id, quiz.chapter_id, percentage, total_questions)
+                publish_quiz_passed(request.user.id, quiz.course_id, quiz.chapter_id, percentage, len(selected_question_ids))
             except Exception as e:
                 print(f"Error publishing: {e}")
             
-        logger.info(f"Student {request.user.id} submitted Quiz {quiz.id} (Score: {percentage}%)")
+        logger.info(f"Student {request.user.id} submitted Quiz {quiz.id} (Attempt #{attempt.attempt_number}, Score: {percentage}%)")
 
         return Response({
             'quiz_id': quiz.id,
+            'attempt_number': attempt.attempt_number,
             'score': percentage,
             'correct_answers': correct_count,
-            'total_questions': total_questions,
-            'passed': percentage >= quiz.passing_score
+            'total_questions': len(selected_question_ids),
+            'passed': percentage >= quiz.passing_score,
+            'remaining_attempts': 2 - (completed_attempts + 1)
         })
 
     @action(detail=True, methods=['get'], url_path='my-attempt')
@@ -162,6 +216,26 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # Vérifier le nombre de tentatives terminées
+        completed_attempts_count = QuizAttempt.objects.filter(
+            quiz=quiz,
+            student_id=request.user.id,
+            completed_at__isnull=False
+        ).count()
+        
+        if completed_attempts_count >= 2:
+            return Response(
+                {'error': 'Maximum attempts reached (2/2). Final status recorded.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Block if already passed
+        if QuizAttempt.objects.filter(quiz=quiz, student_id=request.user.id, percentage__gte=quiz.passing_score).exists():
+            return Response(
+                {'error': 'Assessment already validated. Mastery achieved.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         # Vérifier si déjà en cours
         existing = QuizAttempt.objects.filter(
             quiz=quiz,
@@ -175,14 +249,47 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_200_OK
             )
 
+        # Créer une nouvelle tentative
+        from django.db.models import Max
+        last_attempt = QuizAttempt.objects.filter(quiz=quiz, student_id=request.user.id).aggregate(Max('attempt_number'))
+        next_attempt_num = (last_attempt['attempt_number__max'] or 0) + 1
+        
+        # Intelligent Pool Selection: Prioritize questions NOT seen in previous attempts
+        import random
+        all_questions_pool = list(quiz.questions.all().values_list('id', flat=True))
+        
+        # Find questions seen in previous attempts
+        seen_question_ids = Answer.objects.filter(
+            attempt__quiz=quiz,
+            attempt__student_id=request.user.id
+        ).values_list('question_id', flat=True).distinct()
+        
+        # Filter pool to unseen questions
+        unseen_pool = [qid for qid in all_questions_pool if qid not in seen_question_ids]
+        
+        if len(unseen_pool) >= quiz.questions_per_attempt:
+            # We have enough fresh questions!
+            selected_ids = random.sample(unseen_pool, quiz.questions_per_attempt)
+        else:
+            # Pool is exhausted or too small - combine unseen with some seen ones to fill the set
+            # Ensure the combination is also shuffled
+            random.shuffle(all_questions_pool)
+            combined = list(unseen_pool) + [qid for qid in all_questions_pool if qid not in unseen_pool]
+            selected_ids = combined[:quiz.questions_per_attempt]
+            random.shuffle(selected_ids) # Final shuffle
+
         attempt = QuizAttempt.objects.create(
             quiz=quiz,
-            student_id=request.user.id
+            student_id=request.user.id,
+            attempt_number=next_attempt_num,
+            selected_questions=selected_ids
         )
 
         return Response({
             'attempt_id': attempt.id,
-            'quiz': QuizSerializer(quiz).data
+            'attempt_number': attempt.attempt_number,
+            'remaining_attempts': 2 - next_attempt_num,
+            'quiz': QuizSerializer(quiz, context={'attempt': attempt}).data
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])

@@ -12,6 +12,7 @@ class Quiz(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     duration_minutes = models.IntegerField(default=30)
     passing_score = models.IntegerField(default=70)  # pourcentage
+    questions_per_attempt = models.IntegerField(default=10)  # subset from pool
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -71,9 +72,10 @@ class QuizAttempt(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     score = models.IntegerField(null=True, blank=True)  # points obtenus
     percentage = models.IntegerField(null=True, blank=True)
+    attempt_number = models.IntegerField(default=1)
+    selected_questions = models.JSONField(null=True, blank=True)  # IDs of questions for this attempt
 
     class Meta:
-        unique_together = ['quiz', 'student_id']
         indexes = [
             models.Index(fields=['student_id']),
             models.Index(fields=['quiz', 'student_id']),

@@ -8,6 +8,7 @@ urlpatterns = [
     
     # Admin Endpoints
     path('admin/stats', views.AdminStatsView.as_view(), name='admin-stats'),
+    path('admin/student-stats', views.AdminStudentStatsView.as_view(), name='admin-student-stats'),
     path('admin/users', views.AdminUserListView.as_view(), name='admin-user-list'),
     path('admin/users/<int:pk>', views.AdminUserDetailView.as_view(), name='admin-user-detail'),
 ]

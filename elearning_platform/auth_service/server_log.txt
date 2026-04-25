@@ -1,0 +1,26 @@
+/Users/test/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/test/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Watching for file changes with StatReloader
+Unauthorized: /api/auth/profile/me/
+[AUTH-SERVICE] [2026-04-19 12:01:00,247] WARNING: Unauthorized: /api/auth/profile/me/
+[19/Apr/2026 12:01:00] "PATCH /api/auth/profile/me/ HTTP/1.1" 401 107
+[AUTH-SERVICE] [2026-04-19 12:02:26,890] INFO: User student_1 (ID: 9) logged in successfully
+[19/Apr/2026 12:02:26] "POST /api/auth/login HTTP/1.1" 200 558
+[19/Apr/2026 12:02:26] "PATCH /api/auth/profile/me/ HTTP/1.1" 200 250
+[19/Apr/2026 12:03:12] "HEAD /api/auth/media/profile_pics/test_pfp.png HTTP/1.1" 200 0
+[19/Apr/2026 12:06:34] "GET /api/auth/media/profile_pics/test_pfp.png HTTP/1.1" 200 17
+Not Found: /favicon.ico
+[AUTH-SERVICE] [2026-04-19 12:06:34,860] WARNING: Not Found: /favicon.ico
+[19/Apr/2026 12:06:34] "GET /favicon.ico HTTP/1.1" 404 2254
+Warning: Could not register with Consul. Check connection at consul:8500
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 19, 2026 - 12:00:57
+Django version 4.2, using settings 'auth_project.settings'
+Starting development server at http://0.0.0.0:8001/
+Quit the server with CONTROL-C.
+
+Warning: Could not register with Consul. Check connection at consul:8500

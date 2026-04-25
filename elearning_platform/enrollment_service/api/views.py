@@ -20,28 +20,69 @@ class AdminStatsView(APIView):
     authentication_classes = [StatelessJWTAuthentication]
 
     def get(self, request):
-        if not getattr(request.user, 'role', None) == 'admin':
-            return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in ['admin', 'instructor', 'teacher']:
+            return Response({"detail": "Admin, instructor, or teacher access required."}, status=status.HTTP_403_FORBIDDEN)
         
-        unique_students = Enrollment.objects.values('student_id').distinct().count()
-        
-        # Get counts per course
-        from django.db.models import Count
-        course_data = Enrollment.objects.values('course_id').annotate(student_count=Count('student_id', distinct=True)).order_by('-student_count')
-        
-        # Resolve titles from Course Service
+        # Resolve courses to filter logic if instructor
         auth_token = request.headers.get('Authorization', '')
-        course_stats = []
+        my_course_ids = None
+        courses_map = {}
         try:
             courses_res = requests.get(f"{settings.COURSE_SERVICE_URL}/api/courses/", headers={'Authorization': auth_token}, timeout=2)
             if courses_res.status_code == 200:
-                courses_map = {c['id']: c['title'] for c in courses_res.json()}
-                for item in course_data:
-                    course_stats.append({
-                        "course_id": item['course_id'],
-                        "title": courses_map.get(item['course_id'], f"Course {item['course_id']}"),
-                        "count": item['student_count']
-                    })
+                res_data = courses_res.json()
+                course_list = res_data['results'] if isinstance(res_data, dict) and 'results' in res_data else res_data
+                if isinstance(course_list, list):
+                    courses_map = {c['id']: c['title'] for c in course_list}
+                    if user_role in ['instructor', 'teacher']:
+                        my_course_ids = list(courses_map.keys())
+        except Exception as e:
+            logger.error(f"Failed to resolve courses: {e}")
+
+        from django.db.models import Count, Avg
+        from datetime import timedelta
+        
+        enrollment_qs = Enrollment.objects.all()
+        if user_role in ['instructor', 'teacher']:
+            if my_course_ids is None:
+                return Response({"total_enrollments": 0, "course_stats": []})
+            enrollment_qs = enrollment_qs.filter(course_id__in=my_course_ids)
+
+        total_enrollments = enrollment_qs.count()
+        unique_students = enrollment_qs.values('student_id').distinct().count()
+        
+        # Revenue Calculation (Projected $99/seat)
+        revenue = total_enrollments * 99
+        
+        # Growth Calculation (last 30 days)
+        last_month = timezone.now() - timedelta(days=30)
+        new_enrollments = enrollment_qs.filter(enrolled_at__gt=last_month).count()
+        growth = round((new_enrollments / total_enrollments * 100), 1) if total_enrollments > 0 else 0
+
+        # Avg Completion Calculation
+        try:
+            progress_qs = Progress.objects.all()
+            if user_role in ['instructor', 'teacher']:
+                progress_qs = progress_qs.filter(course_id__in=my_course_ids)
+            
+            total_prog = progress_qs.count()
+            done_prog = progress_qs.filter(completed=True).count()
+            avg_completion = round((done_prog / total_prog * 100), 1) if total_prog > 0 else 0
+        except Exception:
+            avg_completion = 0
+
+        # Get counts per course
+        course_data = enrollment_qs.values('course_id').annotate(student_count=Count('student_id', distinct=True)).order_by('-student_count')
+        
+        course_stats = []
+        try:
+            for item in course_data:
+                course_stats.append({
+                    "course_id": item['course_id'],
+                    "title": courses_map.get(item['course_id'], f"Course {item['course_id']}"),
+                    "count": item['student_count']
+                })
         except Exception as e:
             logger.error(f"Failed to resolve course titles for stats: {e}")
             for item in course_data:
@@ -52,7 +93,11 @@ class AdminStatsView(APIView):
                 })
 
         return Response({
-            "total_enrollments": unique_students,
+            "total_enrollments": total_enrollments,
+            "unique_students": unique_students,
+            "revenue": f"${revenue:,}",
+            "avg_completion": f"{avg_completion}%",
+            "growth": f"+{growth}%",
             "course_stats": course_stats
         })
 
@@ -61,10 +106,9 @@ class AdminEnrollmentListView(APIView):
     authentication_classes = [StatelessJWTAuthentication]
 
     def get(self, request):
-        if not getattr(request.user, 'role', None) == 'admin':
-            return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
-        
-        enrollments = Enrollment.objects.all().order_by('-enrolled_at')
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in ['admin', 'instructor', 'teacher']:
+            return Response({"detail": "Admin, instructor, or teacher access required."}, status=status.HTTP_403_FORBIDDEN)
         
         # Bulk resolve metadata to avoid N+1 internal service calls
         auth_token = request.headers.get('Authorization', '')
@@ -72,20 +116,32 @@ class AdminEnrollmentListView(APIView):
         users_map = {}
         courses_map = {}
         
+        # Fetch courses from Course Service
+        try:
+            courses_res = requests.get(f"{settings.COURSE_SERVICE_URL}/api/courses/", headers={'Authorization': auth_token}, timeout=2)
+            if courses_res.status_code == 200:
+                res_data = courses_res.json()
+                # Handle potential pagination
+                course_list = res_data['results'] if isinstance(res_data, dict) and 'results' in res_data else res_data
+                if isinstance(course_list, list):
+                    for c in course_list:
+                        courses_map[c['id']] = c
+        except Exception as e:
+            logger.error(f"Failed to resolve courses for admin enrollment list: {e}")
+
+        # Filter enrollments if instructor/teacher
+        enrollments = Enrollment.objects.all().order_by('-enrolled_at')
+        if user_role in ['instructor', 'teacher']:
+            enrollments = enrollments.filter(course_id__in=courses_map.keys())
+        
         try:
             # Fetch users from Auth Service
             users_res = requests.get(f"{settings.AUTH_SERVICE_URL if hasattr(settings, 'AUTH_SERVICE_URL') else 'http://auth-service:8001'}/api/auth/admin/users", headers={'Authorization': auth_token}, timeout=2)
             if users_res.status_code == 200:
                 for u in users_res.json():
                     users_map[u['id']] = u
-            
-            # Fetch courses from Course Service
-            courses_res = requests.get(f"{settings.COURSE_SERVICE_URL}/api/courses/", headers={'Authorization': auth_token}, timeout=2)
-            if courses_res.status_code == 200:
-                for c in courses_res.json():
-                    courses_map[c['id']] = c
         except Exception as e:
-            logger.error(f"Failed to resolve metadata for admin enrollment list: {e}")
+            logger.error(f"Failed to resolve users for admin enrollment list: {e}")
 
         data = []
         for enroll in enrollments:

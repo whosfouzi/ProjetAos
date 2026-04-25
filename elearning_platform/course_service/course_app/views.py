@@ -31,8 +31,13 @@ class CourseListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = Course.objects.all().order_by('-id')
+
+        # Restrict instructors/teachers to ONLY see their own courses.
+        if self.request.user.is_authenticated and self.request.user.role in ['instructor', 'teacher']:
+            queryset = queryset.filter(instructor_id=self.request.user.id)
+
         if self.request.query_params.get('my_courses') == 'true' and self.request.user.is_authenticated:
-            if self.request.user.role == 'instructor':
+            if self.request.user.role in ['instructor', 'teacher']:
                 queryset = queryset.filter(instructor_id=self.request.user.id)
 
         domain_id = self.request.query_params.get('domain_id')
@@ -49,7 +54,7 @@ class CourseListCreateView(generics.ListCreateAPIView):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or request.user.role != 'instructor':
+        if not request.user.is_authenticated or request.user.role not in ['instructor', 'teacher']:
             return Response({"detail": "Only instructors can create courses."}, status=status.HTTP_403_FORBIDDEN)
 
         specialization_id = request.data.get('specialization')
@@ -115,7 +120,7 @@ class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if request.user.role != 'instructor' or instance.instructor_id != request.user.id:
+        if request.user.role not in ['instructor', 'teacher'] or instance.instructor_id != request.user.id:
             return Response({"detail": "You do not have permission to delete this course."}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
@@ -138,7 +143,7 @@ class ChapterListView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         course = Course.objects.get(pk=self.kwargs['pk'])
-        if request.user.role != 'instructor' or course.instructor_id != request.user.id:
+        if request.user.role not in ['instructor', 'teacher'] or course.instructor_id != request.user.id:
             return Response({"detail": "You can only add chapters to your own courses."}, status=status.HTTP_403_FORBIDDEN)
 
         mutable_data = request.data.copy()
@@ -161,7 +166,7 @@ class ChapterDetailView(generics.RetrieveUpdateDestroyAPIView):
         return [permissions.AllowAny()]
 
     def _check_ownership(self, request, instance):
-        if request.user.role != 'instructor' or instance.course.instructor_id != request.user.id:
+        if request.user.role not in ['instructor', 'teacher'] or instance.course.instructor_id != request.user.id:
             return Response({"detail": "You do not have permission to modify this chapter."}, status=status.HTTP_403_FORBIDDEN)
         return None
 
@@ -194,7 +199,7 @@ class ChapterPDFDeleteView(generics.GenericAPIView):
 
     def delete(self, request, *args, **kwargs):
         instance = self.get_object()
-        if request.user.role != 'instructor' or instance.course.instructor_id != request.user.id:
+        if request.user.role not in ['instructor', 'teacher'] or instance.course.instructor_id != request.user.id:
             return Response({"detail": "You do not have permission."}, status=status.HTTP_403_FORBIDDEN)
 
         if instance.pdf_file:

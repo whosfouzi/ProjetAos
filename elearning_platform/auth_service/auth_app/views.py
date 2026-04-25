@@ -120,3 +120,29 @@ class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
         publish_user_deleted(user_id)
         
         return super().destroy(request, *args, **kwargs)
+
+
+class AdminStudentStatsView(APIView):
+    """Returns detailed student-specific statistics for the admin dashboard."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from datetime import timedelta
+        now = timezone.now()
+        thirty_days_ago = now - timedelta(days=30)
+        ninety_days_ago = now - timedelta(days=90)
+
+        students = User.objects.filter(role='student')
+        total = students.count()
+        active = students.filter(last_login__gte=thirty_days_ago).count()
+        inactive = students.filter(
+            Q(last_login__lt=ninety_days_ago) | Q(last_login__isnull=True)
+        ).count()
+        never_logged_in = students.filter(last_login__isnull=True).count()
+
+        return Response({
+            "total_students": total,
+            "active_students": active,        # logged in within 30 days
+            "inactive_students": inactive,    # no login in 90+ days
+            "never_logged_in": never_logged_in,
+        })
