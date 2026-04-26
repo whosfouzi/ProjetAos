@@ -53,6 +53,30 @@ services:
     depends_on:
       - traefik
 
+  auth-service:
+    build: ./auth_service
+    volumes:
+      - ./auth_service:/app
+      - ./auth_service/db.sqlite3:/app/db.sqlite3
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - CONSUL_HOST=${CORE_IP}
+      - SERVICE_IP=${CORE_IP}
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=PathPrefix(`/api/auth`)"
+      - "traefik.http.routers.auth.priority=10"
+      - "traefik.http.services.auth.loadbalancer.server.port=8001"
+    networks:
+      - elearning_net
+    depends_on:
+      - traefik
+      - consul
+
 networks:
   elearning_net:
     driver: bridge
