@@ -1,0 +1,111 @@
+services:
+  course-service:
+    build: ./course_service
+    volumes:
+      - ./course_service:/app
+      - ./course_service/media:/app/media
+      - ./course_service/db.sqlite3:/app/db.sqlite3
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+      - CONSUL_HOST=${CORE_IP}
+      - SERVICE_IP=${SERVICE_IP}
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.course.rule=PathPrefix(`/api/courses`) || PathPrefix(`/media`)"
+      - "traefik.http.routers.course.priority=10"
+      - "traefik.http.services.course.loadbalancer.server.port=8002"
+    networks:
+      - elearning_net
+
+  enrollment-service:
+    build: ./enrollment_service
+    volumes:
+      - ./enrollment_service:/app
+      - ./enrollment_service/db.sqlite3:/app/db.sqlite3
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+      - CONSUL_HOST=${CORE_IP}
+      - RABBITMQ_HOST=${CORE_IP}
+      - SERVICE_IP=${SERVICE_IP}
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.enrollment.rule=PathPrefix(`/api/enroll`)"
+      - "traefik.http.routers.enrollment.priority=10"
+      - "traefik.http.services.enrollment.loadbalancer.server.port=8003"
+      - "traefik.consul_registration.id=enrollment-service-remote"
+      - "traefik.consul_registration.service.name=enrollment-service"
+      - "traefik.consul_registration.service.port=8003"
+      - "traefik.consul_registration.service.address=${SERVICE_IP}"
+    networks:
+      - elearning_net
+
+  enrollment-worker:
+    build: ./enrollment_service
+    volumes:
+      - ./enrollment_service:/app
+      - ./enrollment_service/db.sqlite3:/app/db.sqlite3
+    command: python manage.py run_rabbitmq_consumer
+    environment:
+      - CONSUL_HOST=${CORE_IP}
+      - RABBITMQ_HOST=${CORE_IP}
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    networks:
+      - elearning_net
+
+  notification-service:
+    build: ./notification_service
+    volumes:
+      - ./notification_service:/app
+    environment:
+      - RABBITMQ_HOST=${CORE_IP}
+    networks:
+      - elearning_net
+
+  quiz-service:
+    build: ./quiz_service
+    volumes:
+      - ./quiz_service:/app
+      - ./quiz_service/db.sqlite3:/app/db.sqlite3
+    environment:
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - RABBITMQ_HOST=${CORE_IP}
+      - CONSUL_HOST=${CORE_IP}
+      - SERVICE_IP=${SERVICE_IP}
+      - PYTHONUNBUFFERED=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.quiz.rule=PathPrefix(`/api/quizzes`)"
+      - "traefik.http.routers.quiz.priority=10"
+      - "traefik.http.services.quiz.loadbalancer.server.port=8004"
+      - "traefik.consul_registration.id=quiz-service-remote"
+      - "traefik.consul_registration.service.name=quiz-service"
+      - "traefik.consul_registration.service.port=8004"
+      - "traefik.consul_registration.service.address=${SERVICE_IP}"
+    networks:
+      - elearning_net
+
+  quiz-worker:
+    build: ./quiz_service
+    volumes:
+      - ./quiz_service:/app
+      - ./quiz_service/db.sqlite3:/app/db.sqlite3
+    command: python manage.py run_rabbitmq_consumer
+    environment:
+      - RABBITMQ_HOST=${CORE_IP}
+      - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - PYTHONUNBUFFERED=1
+    networks:
+      - elearning_net
+
+networks:
+  elearning_net:
+    driver: bridge
