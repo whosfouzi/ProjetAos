@@ -79,7 +79,7 @@ services:
       - PYTHONUNBUFFERED=1
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.course.rule=PathPrefix(`/api/courses`) || PathPrefix(`/media`)"
+      - "traefik.http.routers.course.rule=PathPrefix(`/api/courses`)"
       - "traefik.http.routers.course.priority=10"
       - "traefik.http.services.course.loadbalancer.server.port=8002"
     networks:
