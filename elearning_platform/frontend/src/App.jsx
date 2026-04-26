@@ -41,7 +41,146 @@ import CourseRosterView from './views/CourseRosterView.jsx';
 import AdminDashView from './views/AdminDashView.jsx';
 import AdminUserListView from './views/AdminUserListView.jsx';
 
+// ── Global Shell Component ──────────────────────────────────────────────
+const GlobalShell = ({ 
+  children, userRole, view, setView, searchQuery, setSearchQuery, 
+  setCatalogPage, theme, toggleTheme, dropdownRef, dropdownOpen, 
+  setDropdownOpen, username, avatarSrc, logout, 
+  message, msgType 
+}) => {
+  return (
+    <div className={`min-h-screen transition-colors duration-500 bg-[var(--bg-app)] text-[var(--on-surface)] font-body selection:bg-primary selection:text-on-primary`}>
+      {/* Universal Navbar */}
+      <nav 
+        className="fixed top-0 left-0 w-full z-[100] h-24 flex items-center justify-between px-12 bg-[var(--bg-app)]/80 backdrop-blur-2xl border-b border-white/5"
+        style={{ WebkitBackdropFilter: 'blur(40px)' }}
+      >
+        <div className="flex items-center gap-16">
+          <div 
+            className="text-2xl font-black tracking-tighter text-primary uppercase cursor-pointer" 
+            onClick={() => setView(userRole === 'admin' ? 'admin-dash' : (userRole === 'instructor' || userRole === 'teacher') ? 'instructor-dash' : 'courses')}
+          >
+            Aura {userRole === 'admin' ? 'Nexus' : 'Scholar'}
+          </div>
+          
+          <div className="hidden lg:flex items-center gap-8">
+            {userRole === 'admin' ? (
+              <>
+                <button onClick={() => setView('admin-dash')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'admin-dash' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Intelligence Hub</button>
+                <button onClick={() => setView('admin-users')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'admin-users' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Registry</button>
+                <button onClick={() => setView('courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Catalog</button>
+              </>
+            ) : (userRole === 'instructor' || userRole === 'teacher') ? (
+              <>
+                <button onClick={() => setView('instructor-dash')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'instructor-dash' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Studio Dashboard</button>
+                <button onClick={() => setView('courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Public Library</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setView('my-courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'my-courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>My Pathways</button>
+                <button onClick={() => setView('courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Browser</button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-8">
+          <div className="relative hidden md:block">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--on-surface-variant)]" />
+            <input 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCatalogPage(1); // Reset pagination on new search
+                if (view !== 'courses' && view !== 'my-courses') {
+                  setView('courses'); // Auto-navigate to catalog when searching
+                }
+              }}
+              className="bg-[var(--surface-high)]/10 border border-white/5 rounded-full py-2.5 pl-10 pr-6 text-xs text-[var(--on-surface)] placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-all w-64" 
+              placeholder="Query system repository..." 
+            />
+          </div>
+
+          <div className="flex items-center gap-6 pl-6 border-l border-white/10">
+            {/* Celestial Theme Toggle */}
+            <button 
+              onClick={toggleTheme}
+              className="text-[var(--on-surface-variant)] hover:text-primary transition-all p-2 rounded-xl hover:bg-white/5 relative group"
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              <span className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[200] pointer-events-none">
+                 Cycle to {theme === 'dark' ? 'Lumina' : 'Umbra'}
+              </span>
+            </button>
+
+            <button className="text-[var(--on-surface-variant)] hover:text-primary transition-all relative">
+              <Bell size={20} />
+              <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_var(--primary)]"></span>
+            </button>
+            
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-3 p-1 rounded-2xl hover:bg-white/5 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-white/10 flex items-center justify-center overflow-hidden">
+                  {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" alt="" /> : <User size={20} className="text-primary" />}
+                </div>
+                <div className="hidden lg:block text-left">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface)] leading-none mb-1">{username}</p>
+                  <p className="text-[8px] font-bold uppercase tracking-tighter text-[var(--on-surface-variant)] leading-none">{userRole}</p>
+                </div>
+                <ChevronDownIcon size={14} className={`text-[var(--on-surface-variant)] transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-4 w-64 bg-[var(--surface)]/95 backdrop-blur-2xl rounded-3xl border border-white/5 shadow-3xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 z-[110]">
+                  <div className="p-6 border-b border-white/5 bg-white/[0.02]">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-4">Identity Profile</p>
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
+                           {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" alt="" /> : <User size={24} className="text-primary" />}
+                        </div>
+                        <div>
+                           <p className="font-bold text-[var(--on-surface)] text-sm">{username}</p>
+                           <p className="text-[10px] text-slate-500 uppercase tracking-widest">{(userRole === 'instructor' || userRole === 'teacher') ? 'Instructor' : userRole}</p>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="p-2">
+                     <button onClick={() => { setView('profile'); setDropdownOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] hover:bg-white/5 transition-all">
+                        <User size={16} className="text-primary" /> Profile Settings
+                     </button>
+                     <button onClick={logout} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-400/10 transition-all">
+                        <LogOut size={16} /> Terminate Session
+                     </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Content Area */}
+      <main className="pt-24 min-h-screen bg-[var(--bg-app)]">
+        {children}
+      </main>
+
+      {message && (
+        <div className={`toast ${msgType === 'error' ? 'toast-error' : 'toast-success'}`}>
+          {msgType === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
+          {message}
+        </div>
+      )}
+    </div>
+  );
+};
+
 function App() {
+
+
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [userId, setUserId] = useState(localStorage.getItem('user_id') || null);
   const [userRole, setUserRole] = useState(localStorage.getItem('user_role') || 'student');
@@ -59,8 +198,13 @@ function App() {
   const [myCourses, setMyCourses] = useState([]);
   const [instructorCourses, setInstructorCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(() => {
-    const saved = localStorage.getItem('selectedCourse');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('selectedCourse');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error("Failed to parse selectedCourse from localStorage", e);
+      return null;
+    }
   });
   const [instructorStats, setInstructorStats] = useState({ total_enrollments: 0, course_stats: [] });
   const [instructorEnrollments, setInstructorEnrollments] = useState([]);
@@ -93,12 +237,22 @@ function App() {
 
   const [quizzes, setQuizzes] = useState([]);
   const [activeQuiz, setActiveQuiz] = useState(() => {
-    const saved = localStorage.getItem('activeQuiz');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('activeQuiz');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error("Failed to parse activeQuiz from localStorage", e);
+      return null;
+    }
   });
   const [activeAttempt, setActiveAttempt] = useState(() => {
-    const saved = localStorage.getItem('activeAttempt');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('activeAttempt');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error("Failed to parse activeAttempt from localStorage", e);
+      return null;
+    }
   });
   const [answers, setAnswers] = useState({});
   const [quizResult, setQuizResult] = useState(null);
@@ -139,6 +293,20 @@ function App() {
   const [newQuestion, setNewQuestion] = useState({ text: '', choices_attributes: [{text: '', is_correct: true}, {text: '', is_correct: false}] });
   const [userProfile, setUserProfile] = useState(null);
   const [profilePicFile, setProfilePicFile] = useState(null);
+
+  const [avatarSrc, setAvatarSrc] = useState(null);
+  useEffect(() => {
+    let objectUrl = null;
+    if (profilePicFile instanceof Blob) {
+      objectUrl = URL.createObjectURL(profilePicFile);
+      setAvatarSrc(objectUrl);
+    } else {
+      setAvatarSrc(userProfile?.profile_picture || null);
+    }
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [profilePicFile, userProfile]);
   const [bioInput, setBioInput] = useState('');
   const [studyMode, setStudyMode] = useState(false);
   const [message, setMessage] = useState(null);
@@ -156,22 +324,30 @@ function App() {
 
   // Persist important state
   useEffect(() => {
-    if (view) localStorage.setItem('view', view);
+    try {
+      if (view) localStorage.setItem('view', view);
+    } catch (e) { console.error("localStorage access failed", e); }
   }, [view]);
 
   useEffect(() => {
-    if (selectedCourse) localStorage.setItem('selectedCourse', JSON.stringify(selectedCourse));
-    else localStorage.removeItem('selectedCourse');
+    try {
+      if (selectedCourse) localStorage.setItem('selectedCourse', JSON.stringify(selectedCourse));
+      else localStorage.removeItem('selectedCourse');
+    } catch (e) { console.error("localStorage access failed", e); }
   }, [selectedCourse]);
 
   useEffect(() => {
-    if (activeQuiz) localStorage.setItem('activeQuiz', JSON.stringify(activeQuiz));
-    else localStorage.removeItem('activeQuiz');
+    try {
+      if (activeQuiz) localStorage.setItem('activeQuiz', JSON.stringify(activeQuiz));
+      else localStorage.removeItem('activeQuiz');
+    } catch (e) { console.error("localStorage access failed", e); }
   }, [activeQuiz]);
 
   useEffect(() => {
-    if (activeAttempt) localStorage.setItem('activeAttempt', JSON.stringify(activeAttempt));
-    else localStorage.removeItem('activeAttempt');
+    try {
+      if (activeAttempt) localStorage.setItem('activeAttempt', JSON.stringify(activeAttempt));
+      else localStorage.removeItem('activeAttempt');
+    } catch (e) { console.error("localStorage access failed", e); }
   }, [activeAttempt]);
 
   useEffect(() => {
@@ -1037,143 +1213,7 @@ function App() {
     );
   }
 
-// ── Global Shell Component ──────────────────────────────────────────────
-const GlobalShell = ({ 
-  children, userRole, view, setView, searchQuery, setSearchQuery, 
-  setCatalogPage, theme, toggleTheme, dropdownRef, dropdownOpen, 
-  setDropdownOpen, username, userProfile, profilePicFile, logout, 
-  message, msgType 
-}) => {
-  const avatarSrc = (profilePicFile instanceof Blob) 
-    ? URL.createObjectURL(profilePicFile) 
-    : (userProfile?.profile_picture || null);
-  
-  return (
-    <div className={`min-h-screen transition-colors duration-500 bg-[var(--bg-app)] text-[var(--on-surface)] font-body selection:bg-primary selection:text-on-primary`}>
-      {/* Universal Navbar */}
-      <nav className="fixed top-0 left-0 w-full z-[100] h-24 flex items-center justify-between px-12 bg-[var(--bg-app)]/80 backdrop-blur-2xl border-b border-white/5">
-        <div className="flex items-center gap-16">
-          <div 
-            className="text-2xl font-black tracking-tighter text-primary uppercase cursor-pointer" 
-            onClick={() => setView(userRole === 'admin' ? 'admin-dash' : (userRole === 'instructor' || userRole === 'teacher') ? 'instructor-dash' : 'courses')}
-          >
-            Aura {userRole === 'admin' ? 'Nexus' : 'Scholar'}
-          </div>
-          
-          <div className="hidden lg:flex items-center gap-8">
-            {userRole === 'admin' ? (
-              <>
-                <button onClick={() => setView('admin-dash')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'admin-dash' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Intelligence Hub</button>
-                <button onClick={() => setView('admin-users')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'admin-users' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Registry</button>
-                <button onClick={() => setView('courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Catalog</button>
-              </>
-            ) : (userRole === 'instructor' || userRole === 'teacher') ? (
-              <>
-                <button onClick={() => setView('instructor-dash')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'instructor-dash' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Studio Dashboard</button>
-                <button onClick={() => setView('courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Public Library</button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => setView('my-courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'my-courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>My Pathways</button>
-                <button onClick={() => setView('courses')} className={`text-[10px] font-black uppercase tracking-widest transition-all ${view === 'courses' ? 'text-primary' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}>Browser</button>
-              </>
-            )}
-          </div>
-        </div>
 
-        <div className="flex items-center gap-8">
-          <div className="relative hidden md:block">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--on-surface-variant)]" />
-            <input 
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCatalogPage(1); // Reset pagination on new search
-                if (view !== 'courses' && view !== 'my-courses') {
-                  setView('courses'); // Auto-navigate to catalog when searching
-                }
-              }}
-              className="bg-[var(--surface-high)]/10 border border-white/5 rounded-full py-2.5 pl-10 pr-6 text-xs text-[var(--on-surface)] placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-all w-64" 
-              placeholder="Query system repository..." 
-            />
-          </div>
-
-          <div className="flex items-center gap-6 pl-6 border-l border-white/10">
-            {/* Celestial Theme Toggle */}
-            <button 
-              onClick={toggleTheme}
-              className="text-[var(--on-surface-variant)] hover:text-primary transition-all p-2 rounded-xl hover:bg-white/5 relative group"
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-            >
-              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-              <span className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[200] pointer-events-none">
-                 Cycle to {theme === 'dark' ? 'Lumina' : 'Umbra'}
-              </span>
-            </button>
-
-            <button className="text-[var(--on-surface-variant)] hover:text-primary transition-all relative">
-              <Bell size={20} />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_var(--primary)]"></span>
-            </button>
-            
-            <div className="relative" ref={dropdownRef}>
-              <button 
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-3 p-1 rounded-2xl hover:bg-white/5 transition-all group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-white/10 flex items-center justify-center overflow-hidden">
-                  {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" alt="" /> : <User size={20} className="text-primary" />}
-                </div>
-                <div className="hidden lg:block text-left">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface)] leading-none mb-1">{username}</p>
-                  <p className="text-[8px] font-bold uppercase tracking-tighter text-[var(--on-surface-variant)] leading-none">{userRole}</p>
-                </div>
-                <ChevronDownIcon size={14} className={`text-[var(--on-surface-variant)] transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-4 w-64 bg-[var(--surface)]/95 backdrop-blur-2xl rounded-3xl border border-white/5 shadow-3xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 z-[110]">
-                  <div className="p-6 border-b border-white/5 bg-white/[0.02]">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-4">Identity Profile</p>
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
-                           {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" alt="" /> : <User size={24} className="text-primary" />}
-                        </div>
-                        <div>
-                           <p className="font-bold text-[var(--on-surface)] text-sm">{username}</p>
-                           <p className="text-[10px] text-slate-500 uppercase tracking-widest">{(userRole === 'instructor' || userRole === 'teacher') ? 'Instructor' : userRole}</p>
-                        </div>
-                     </div>
-                  </div>
-                  <div className="p-2">
-                     <button onClick={() => { setView('profile'); setDropdownOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] hover:bg-white/5 transition-all">
-                        <User size={16} className="text-primary" /> Profile Settings
-                     </button>
-                     <button onClick={logout} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-400/10 transition-all">
-                        <LogOut size={16} /> Terminate Session
-                     </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Content Area */}
-      <main className="pt-24 min-h-screen bg-[var(--bg-app)]">
-        {children}
-      </main>
-
-      {message && (
-        <div className={`toast ${msgType === 'error' ? 'toast-error' : 'toast-success'}`}>
-          {msgType === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
-          {message}
-        </div>
-      )}
-    </div>
-  );
-};
 
 
   // Wrapper for all authenticated views
@@ -1404,8 +1444,7 @@ const GlobalShell = ({
       dropdownOpen={dropdownOpen}
       setDropdownOpen={setDropdownOpen}
       username={username}
-      userProfile={userProfile}
-      profilePicFile={profilePicFile}
+      avatarSrc={avatarSrc}
       logout={logout}
       message={message}
       msgType={msgType}

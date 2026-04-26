@@ -134,11 +134,11 @@ export default function AdminDashView({
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {[
-                { label: 'Total Students', value: studentStats?.total_students ?? 0, icon: Users, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20', desc: 'All registered' },
-                { label: 'Active (30d)', value: studentStats?.active_students ?? 0, icon: UserCheck, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', desc: 'Logged in recently' },
-                { label: 'Inactive (90d+)', value: studentStats?.inactive_students ?? 0, icon: UserX, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', desc: 'No recent login' },
-                { label: 'Never Logged In', value: studentStats?.never_logged_in ?? 0, icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20', desc: 'Registered but inactive' },
-                { label: 'Enrolled Students', value: studentStats?.enrolled_students ?? 0, icon: GraduationCap, color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20', desc: 'In at least 1 course' },
+                { label: 'Total Students', value: (studentStats?.total_students !== undefined && studentStats?.total_students !== null) ? studentStats.total_students : 0, icon: Users, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20', desc: 'All registered' },
+                { label: 'Active (30d)', value: (studentStats?.active_students !== undefined && studentStats?.active_students !== null) ? studentStats.active_students : 0, icon: UserCheck, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', desc: 'Logged in recently' },
+                { label: 'Inactive (90d+)', value: (studentStats?.inactive_students !== undefined && studentStats?.inactive_students !== null) ? studentStats.inactive_students : 0, icon: UserX, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', desc: 'No recent login' },
+                { label: 'Never Logged In', value: (studentStats?.never_logged_in !== undefined && studentStats?.never_logged_in !== null) ? studentStats.never_logged_in : 0, icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20', desc: 'Registered but inactive' },
+                { label: 'Enrolled Students', value: (studentStats?.enrolled_students !== undefined && studentStats?.enrolled_students !== null) ? studentStats.enrolled_students : 0, icon: GraduationCap, color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20', desc: 'In at least 1 course' },
               ].map((item, idx) => {
                 const Icon = item.icon;
                 return (

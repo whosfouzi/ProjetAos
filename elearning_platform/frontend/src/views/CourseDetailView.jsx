@@ -42,10 +42,13 @@ export default function CourseDetailView({
 
   // In study mode, find the next unfinished chapter to auto-expand
   const nextChapterId = studyMode
-    ? (chapters.find(ch => {
-        const prog = chapterProgress.find(p => p.chapter_id === ch.id);
-        return !prog?.completed;
-      })?.id ?? null)
+    ? (function() {
+        const nextCh = chapters.find(ch => {
+          const prog = chapterProgress.find(p => p.chapter_id === ch.id);
+          return !prog || !prog.completed;
+        });
+        return nextCh ? nextCh.id : null;
+      })()
     : null;
 
   // Auto-expand next chapter when entering study mode
@@ -71,6 +74,7 @@ export default function CourseDetailView({
         .glass-panel {
           background: var(--glass-bg);
           backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
           border: 1px solid var(--glass-border);
         }
         @font-face {

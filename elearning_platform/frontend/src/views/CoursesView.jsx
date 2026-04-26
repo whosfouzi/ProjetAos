@@ -247,6 +247,37 @@ export default function CoursesView({
               );
             })}
           </section>
+          
+          {/* Pagination */}
+          {catalogTotalPages > 1 && (
+            <div className="flex justify-center items-center gap-6 pt-12 border-t border-white/5">
+              <button 
+                disabled={catalogPage === 1}
+                onClick={() => setCatalogPage(catalogPage - 1)}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all bg-[var(--surface-high)]/10 border border-white/5 text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed group"
+              >
+                <ChevronRight className="rotate-180 transition-transform group-hover:-translate-x-1" size={14} />
+                Previous Cycle
+              </button>
+              
+              <div className="flex items-center gap-3">
+                <div className="h-1 w-8 bg-primary rounded-full"></div>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                  {catalogPage} / {catalogTotalPages}
+                </span>
+                <div className="h-1 w-8 bg-[var(--surface-high)]/10 rounded-full"></div>
+              </div>
+
+              <button 
+                disabled={catalogPage === catalogTotalPages}
+                onClick={() => setCatalogPage(catalogPage + 1)}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all bg-[var(--surface-high)]/10 border border-white/5 text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed group"
+              >
+                Next Cycle
+                <ChevronRight className="transition-transform group-hover:translate-x-1" size={14} />
+              </button>
+            </div>
+          )}
 
           {filteredCourses.length === 0 && (
             <div className="flex flex-col items-center justify-center py-32 text-center bg-[var(--surface-low)] border border-dashed border-white/10 rounded-[4rem]">
