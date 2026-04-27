@@ -93,28 +93,29 @@ import socket
 import consul
 
 def register_consul():
+    import time
     port = int(os.environ.get('PORT', 8003))
     consul_host = os.environ.get('CONSUL_HOST', 'consul')
     service_ip = os.environ.get('SERVICE_IP', socket.gethostbyname(socket.gethostname()))
-    try:
-        c = consul.Consul(host=consul_host, port=8500, socket_timeout=2)
-        c.agent.service.register(
-            'enrollment-service',
-            service_id=f'enrollment_service_{port}',
-            port=port,
-            address=service_ip,
-            tags=[
-                "traefik.enable=true",
-                "traefik.http.routers.enroll.rule=PathPrefix(`/api/enroll`) || PathPrefix(`/api/progress`)",
-                "traefik.http.routers.enroll.priority=10",
-            ]
-        )
-        print(f"Successfully registered 'enrollment-service' with Consul.")
-    except Exception:
-        # Avoid log spam in local dev if Consul is missing
-        if os.environ.get('DEBUG') == 'True':
-            print(f"Consul not reached (enrollment-service). Discovery features disabled.")
-        else:
-            print(f"Warning: Could not register with Consul. Check connection at {consul_host}:8500")
+    
+    while True:
+        try:
+            c = consul.Consul(host=consul_host, port=8500, socket_timeout=2)
+            c.agent.service.register(
+                'enrollment-service',
+                service_id=f'enrollment_service_{port}',
+                port=port,
+                address=service_ip,
+                tags=[
+                    "traefik.enable=true",
+                    "traefik.http.routers.enroll.rule=PathPrefix(`/api/enroll`) || PathPrefix(`/api/progress`)",
+                    "traefik.http.routers.enroll.priority=10",
+                ]
+            )
+            print(f"Successfully registered 'enrollment-service' with Consul at {consul_host}:8500")
+            break
+        except Exception:
+            print(f"Retrying Consul registration in 10s... ({consul_host}:8500)")
+            time.sleep(10)
 
-threading.Thread(target=register_consul).start()
+threading.Thread(target=register_consul, daemon=True).start()

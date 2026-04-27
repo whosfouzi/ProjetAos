@@ -62,8 +62,8 @@ services:
       - "8001:8001"
     environment:
       - PORT=8001
-      - CONSUL_HOST=${CORE_IP}
-      - SERVICE_IP=${CORE_IP}
+      - CONSUL_HOST=consul
+      - SERVICE_IP=auth-service
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - PYTHONUNBUFFERED=1
     labels:
