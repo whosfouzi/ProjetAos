@@ -9,7 +9,7 @@ services:
       - "--providers.consulcatalog.endpoint.address=consul:8500"
       - "--providers.consulcatalog.exposedByDefault=false"
     ports:
-      - "80:80"
+      - "8000:80"
       - "8080:8080" # Traefik dashboard
     volumes:
       - "./traefik_dynamic.yml:/etc/traefik/dynamic.yml:ro"
@@ -128,7 +128,7 @@ services:
     command: python manage.py run_rabbitmq_consumer
     environment:
       - CONSUL_HOST=consul
-      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - PYTHONUNBUFFERED=1
     networks:
@@ -202,7 +202,7 @@ services:
     env_file: ./quiz_service/.env
     command: python manage.py run_rabbitmq_consumer
     environment:
-      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - PYTHONUNBUFFERED=1
     networks:
