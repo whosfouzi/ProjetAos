@@ -102,6 +102,8 @@ services:
       - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
       - SERVICE_IP=${SERVICE_IP:-enrollment-service}
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
+      - COURSE_SERVICE_URL=http://${CORE_IP:-course-service}:8002
+      - QUIZ_SERVICE_URL=http://${WORKER_IP:-quiz-service}:8004
       - PYTHONUNBUFFERED=1
     labels:
       - "traefik.enable=true"
@@ -114,10 +116,6 @@ services:
       - "traefik.consul_registration.service.address=enrollment-service"
     networks:
       - elearning_net
-    depends_on:
-      - traefik
-      - consul
-      - rabbitmq
 
   enrollment-worker:
     build: ./enrollment_service
@@ -177,6 +175,7 @@ services:
       - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
       - CONSUL_HOST=${CORE_IP:-consul}
       - SERVICE_IP=${SERVICE_IP:-quiz-service}
+      - COURSE_SERVICE_URL=http://${CORE_IP:-course-service}:8002
       - PYTHONUNBUFFERED=1
 
     labels:
