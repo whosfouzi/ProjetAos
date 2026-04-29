@@ -30,7 +30,12 @@ class SpecializationSerializer(serializers.ModelSerializer):
 class CourseSerializer(serializers.ModelSerializer):
     domain = serializers.ReadOnlyField(source='domain_name')
     category = serializers.ReadOnlyField(source='category_name')
+    chapters = ChapterSerializer(many=True, read_only=True)
+    valid_chapter_ids = serializers.SerializerMethodField()
     
     class Meta:
         model = Course
-        fields = ['id', 'title', 'description', 'instructor_id', 'specialization', 'domain', 'category']
+        fields = ['id', 'title', 'description', 'instructor_id', 'specialization', 'domain', 'category', 'chapters', 'valid_chapter_ids']
+
+    def get_valid_chapter_ids(self, obj):
+        return list(obj.chapters.all().values_list('id', flat=True))

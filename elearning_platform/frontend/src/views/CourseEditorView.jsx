@@ -16,7 +16,8 @@ import {
   HelpCircle,
   Lock,
   ChevronDown,
-  Layout
+  Layout,
+  CheckCircle2
 } from 'lucide-react';
 
 /**
@@ -215,13 +216,13 @@ export default function CourseEditorView({
                               type="text"
                               value={editChapterData.title}
                               onChange={e => setEditChapterData({ ...editChapterData, title: e.target.value })}
-                              className="w-full bg-[var(--surface-high)]/10 border-none rounded-xl px-4 py-3 text-[var(--on-surface)] text-sm focus:ring-1 focus:ring-primary/50"
+                              className="w-full bg-white/5 border-none rounded-xl px-4 py-3 text-[var(--on-surface)] text-sm focus:ring-1 focus:ring-primary/50"
                               placeholder="Chapter Title"
                             />
                             <textarea
                               value={editChapterData.description}
                               onChange={e => setEditChapterData({ ...editChapterData, description: e.target.value })}
-                              className="w-full bg-[var(--surface-high)]/10 border-none rounded-xl px-4 py-3 text-[var(--on-surface)] text-xs focus:ring-1 focus:ring-primary/50 resize-none"
+                              className="w-full bg-white/5 border-none rounded-xl px-4 py-3 text-[var(--on-surface)] text-xs focus:ring-1 focus:ring-primary/50 resize-none"
                               placeholder="Short Description"
                               rows="2"
                             />
@@ -260,7 +261,7 @@ export default function CourseEditorView({
  
                             <div className="space-y-3">
                               {ch.pdf_file && (
-                                <div className="flex items-center gap-3 p-3 bg-[var(--surface-high)]/10 rounded-2xl border border-white/5">
+                                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
                                   <FileText size={20} className="text-primary" />
                                   <div className="flex-1 overflow-hidden">
                                     <div className="text-[10px] font-bold text-[var(--on-surface)] truncate">Syllabus PDF Attached</div>
@@ -271,41 +272,142 @@ export default function CourseEditorView({
                               
                               {/* Quiz Section */}
                               <div className="space-y-2">
-                                 {quizzes.filter(q => q.chapter_id === ch.id).map(quiz => (
-                                   <div key={quiz.id} className="flex items-center justify-between p-3 bg-secondary/10 rounded-2xl border border-secondary/20">
-                                     <div className="flex items-center gap-2 overflow-hidden">
-                                        <Layout size={16} className="text-secondary" />
-                                        <span className="text-[10px] font-bold text-secondary truncate uppercase tracking-widest">{quiz.title}</span>
-                                     </div>
-                                     <button onClick={() => setAddingQuestionToQuiz(addingQuestionToQuiz === quiz.id ? null : quiz.id)} className="text-[9px] font-black uppercase tracking-tighter text-secondary border border-secondary/30 px-2 py-1 rounded-md hover:bg-secondary/20">
-                                       {addingQuestionToQuiz === quiz.id ? 'Close' : '+ Question'}
-                                     </button>
-                                   </div>
-                                 ))}
-                                 
-                                 {addingQuestionToQuiz && quizzes.find(q => q.id === addingQuestionToQuiz)?.chapter_id === ch.id && (
-                                   <div className="p-4 bg-[var(--surface-high)]/10 rounded-2xl border border-white/5 space-y-3 mt-2">
-                                      <input type="text" placeholder="Question Text" value={newQuestion.text} onChange={e => setNewQuestion({...newQuestion, text: e.target.value})} className="w-full bg-[var(--bg-app)] border-none rounded-xl p-3 text-xs text-[var(--on-surface)]" />
-                                      <div className="grid grid-cols-2 gap-2">
-                                         <input type="text" placeholder="Correct Answer" value={newQuestion.choices_attributes[0].text} onChange={e => { const newC = [...newQuestion.choices_attributes]; newC[0].text = e.target.value; setNewQuestion({...newQuestion, choices_attributes: newC}) }} className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2 text-[10px] text-[var(--on-surface)]" />
-                                         <input type="text" placeholder="Wrong Answer" value={newQuestion.choices_attributes[1].text} onChange={e => { const newC = [...newQuestion.choices_attributes]; newC[1].text = e.target.value; setNewQuestion({...newQuestion, choices_attributes: newC}) }} className="bg-red-500/10 border border-red-500/20 rounded-xl p-2 text-[10px] text-[var(--on-surface)]" />
+                                  {quizzes.filter(q => q.chapter_id === ch.id).map(quiz => {
+                                    const questionCount = quiz.questions?.length || 0;
+                                    const poolReady = questionCount === 20;
+                                    
+                                    return (
+                                      <div key={quiz.id} className="space-y-2">
+                                        <div className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${poolReady ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-secondary/10 border-secondary/20'}`}>
+                                          <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${poolReady ? 'bg-emerald-500 text-white' : 'bg-secondary text-white'}`}>
+                                              {poolReady ? <CheckCircle2 size={14} /> : <HelpCircle size={14} />}
+                                            </div>
+                                            <div className="flex flex-col overflow-hidden">
+                                              <span className={`text-[10px] font-black uppercase tracking-widest truncate ${poolReady ? 'text-emerald-500' : 'text-secondary'}`}>{quiz.title}</span>
+                                              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Pool: {questionCount}/20 Questions</span>
+                                            </div>
+                                          </div>
+                                          <button 
+                                            onClick={() => setAddingQuestionToQuiz(addingQuestionToQuiz === quiz.id ? null : quiz.id)} 
+                                            disabled={questionCount >= 20}
+                                            className={`text-[9px] font-black uppercase tracking-tighter border px-3 py-1.5 rounded-xl transition-all ${questionCount >= 20 ? 'opacity-50 grayscale cursor-not-allowed' : 'text-secondary border-secondary/30 hover:bg-secondary/20'}`}
+                                          >
+                                            {addingQuestionToQuiz === quiz.id ? 'Close' : questionCount >= 20 ? 'Pool Complete' : '+ Question'}
+                                          </button>
+                                        </div>
+
+                                        {addingQuestionToQuiz === quiz.id && (
+                                          <div className="p-5 bg-white/5 rounded-[2rem] border border-white/5 space-y-4 mt-2 animate-in fade-in slide-in-from-top-2">
+                                            <div className="space-y-2">
+                                              <label className="text-[8px] font-black text-primary uppercase tracking-widest ml-1">Inquiry Text</label>
+                                              <input 
+                                                type="text" 
+                                                placeholder="e.g. What is the fundamental principle of..." 
+                                                value={newQuestion.text} 
+                                                onChange={e => setNewQuestion({...newQuestion, text: e.target.value})} 
+                                                className="w-full bg-white/5 border-none rounded-xl p-3 text-xs text-[var(--on-surface)] outline-none focus:ring-2 focus:ring-primary/30" 
+                                              />
+                                            </div>
+                                            
+                                            <div className="space-y-3">
+                                              <div className="flex justify-between items-center">
+                                                <label className="text-[8px] font-black text-primary uppercase tracking-widest ml-1">Answer Choices (3-4)</label>
+                                                <div className="text-[8px] font-bold text-slate-500 uppercase">Select one correct</div>
+                                              </div>
+                                              
+                                              <div className="space-y-2">
+                                                {newQuestion.choices.map((choice, idx) => (
+                                                  <div key={idx} className="flex gap-2 items-center">
+                                                    <button 
+                                                      onClick={() => {
+                                                        const nc = newQuestion.choices.map((c, i) => ({...c, is_correct: i === idx}));
+                                                        setNewQuestion({...newQuestion, choices: nc});
+                                                      }}
+                                                      className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${choice.is_correct ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                    >
+                                                      {choice.is_correct ? <CheckCircle2 size={16} /> : <div className="w-2 h-2 rounded-full bg-current" />}
+                                                    </button>
+                                                    <input 
+                                                      type="text" 
+                                                      placeholder={`Choice ${idx + 1}`} 
+                                                      value={choice.text} 
+                                                      onChange={e => {
+                                                        const nc = [...newQuestion.choices];
+                                                        nc[idx].text = e.target.value;
+                                                        setNewQuestion({...newQuestion, choices: nc});
+                                                      }}
+                                                      className={`flex-1 bg-white/5 border-none rounded-xl p-3 text-[10px] text-[var(--on-surface)] focus:ring-2 transition-all ${choice.is_correct ? 'focus:ring-emerald-500/30' : 'focus:ring-primary/30'}`}
+                                                    />
+                                                    {newQuestion.choices.length > 3 && (
+                                                      <button 
+                                                        onClick={() => {
+                                                          const nc = newQuestion.choices.filter((_, i) => i !== idx);
+                                                          if (choice.is_correct && nc.length > 0) nc[0].is_correct = true;
+                                                          setNewQuestion({...newQuestion, choices: nc});
+                                                        }}
+                                                        className="p-2 text-slate-600 hover:text-red-400"
+                                                      >
+                                                        <Trash2 size={14} />
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                                
+                                                {newQuestion.choices.length < 4 && (
+                                                  <button 
+                                                    onClick={() => {
+                                                      setNewQuestion({...newQuestion, choices: [...newQuestion.choices, { text: '', is_correct: false }]});
+                                                    }}
+                                                    className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[9px] font-bold text-slate-500 uppercase tracking-widest hover:text-primary hover:border-primary/40 transition-all"
+                                                  >
+                                                    + Add Choice
+                                                  </button>
+                                                )}
+                                              </div>
+                                            </div>
+
+                                             <div className="space-y-3">
+                                              {newQuestion.choices.filter(c => c.text !== '').length < 3 && (
+                                                <p className="text-[9px] text-amber-500 font-black uppercase tracking-widest text-center animate-pulse">
+                                                  Pool requirement: 3-4 Choices
+                                                </p>
+                                              )}
+                                              <button 
+                                                onClick={() => handleAddQuestion(quiz.id)} 
+                                                disabled={!newQuestion.text || newQuestion.choices.filter(c => c.text !== '').length < 3}
+                                                className="w-full py-3 bg-gradient-to-r from-secondary to-secondary/80 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+                                              >
+                                                Commit Question to Pool
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
-                                      <button onClick={() => handleAddQuestion(addingQuestionToQuiz)} className="w-full py-2 bg-secondary text-white rounded-xl font-bold text-[10px] uppercase tracking-widest">Save Question</button>
-                                   </div>
-                                 )}
- 
-                                 {addingQuizToChapter === ch.id ? (
-                                   <div className="p-4 bg-[var(--bg-app)] rounded-2xl border border-dashed border-white/10 space-y-3">
-                                      <input type="text" placeholder="Quiz Title" value={newQuiz.title} onChange={e => setNewQuiz({...newQuiz, title: e.target.value})} className="w-full bg-[var(--bg-app)] border border-white/5 rounded-xl p-2 text-xs text-[var(--on-surface)]" />
-                                      <input type="number" placeholder="Pass %" value={newQuiz.passingScore} onChange={e => setNewQuiz({...newQuiz, passingScore: e.target.value})} className="w-full bg-[var(--bg-app)] border border-white/5 rounded-xl p-2 text-xs text-[var(--on-surface)]" />
-                                      <div className="flex gap-2">
-                                         <button onClick={() => handleCreateQuiz(selectedCourse.id, ch.id)} className="flex-1 py-2 bg-primary text-white rounded-xl font-bold text-[10px] uppercase tracking-widest">Save Quiz</button>
-                                         <button onClick={() => setAddingQuizToChapter(null)} className="p-2 text-slate-500">Cancel</button>
-                                      </div>
-                                   </div>
+                                    );
+                                  })}
+                                  
+                                  {addingQuizToChapter === ch.id ? (
+                                    <div className="p-4 bg-white/5 rounded-2xl border border-dashed border-white/10 space-y-3 animate-in fade-in zoom-in-95">
+                                       <input type="text" placeholder="Quiz Title (e.g. Final Assessment)" value={newQuiz.title} onChange={e => setNewQuiz({...newQuiz, title: e.target.value})} className="w-full bg-white/5 border border-white/5 rounded-xl p-3 text-xs text-[var(--on-surface)] outline-none focus:ring-2 focus:ring-primary/30" />
+                                       <div className="flex gap-2">
+                                         <div className="flex-1 space-y-1">
+                                           <label className="text-[8px] font-bold text-slate-500 uppercase ml-1">Passing %</label>
+                                           <input type="number" placeholder="70" value={newQuiz.passingScore} onChange={e => setNewQuiz({...newQuiz, passingScore: e.target.value})} className="w-full bg-white/5 border border-white/5 rounded-xl p-3 text-xs text-[var(--on-surface)] outline-none" />
+                                         </div>
+                                         <div className="flex-1 space-y-1">
+                                           <label className="text-[8px] font-bold text-slate-500 uppercase ml-1">Pool Goal</label>
+                                           <div className="w-full bg-white/5 border border-white/5 rounded-xl p-3 text-xs text-slate-500 font-bold">20 Questions</div>
+                                         </div>
+                                       </div>
+                                       <div className="flex gap-2 pt-2">
+                                          <button onClick={() => handleCreateQuiz(selectedCourse.id, ch.id)} className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">Initialize Pool</button>
+                                          <button onClick={() => setAddingQuizToChapter(null)} className="px-4 text-slate-500 text-[10px] font-bold uppercase">Cancel</button>
+                                       </div>
+                                    </div>
                                  ) : (
                                    quizzes.filter(q => q.chapter_id === ch.id).length === 0 && (
-                                     <button onClick={() => setAddingQuizToChapter(ch.id)} className="w-full py-3 bg-[var(--bg-app)] border border-dashed border-white/10 rounded-2xl flex items-center justify-center gap-2 text-slate-400 hover:text-primary hover:border-primary/40 transition-all text-[10px] font-bold uppercase tracking-widest">
+                                     <button onClick={() => setAddingQuizToChapter(ch.id)} className="w-full py-3 bg-white/5 border border-dashed border-white/10 rounded-2xl flex items-center justify-center gap-2 text-slate-400 hover:text-primary hover:border-primary/40 transition-all text-[10px] font-bold uppercase tracking-widest">
                                        <Plus size={14} /> Add Quiz
                                      </button>
                                    )
@@ -329,10 +431,10 @@ export default function CourseEditorView({
                        
                        <div className="space-y-4">
                           <div className="grid grid-cols-4 gap-2">
-                            <input type="number" value={newChapter.order} onChange={e => setNewChapter({...newChapter, order: parseInt(e.target.value) || 1})} className="bg-[var(--surface-high)]/10 border-none rounded-xl p-3 text-xs text-center text-[var(--on-surface)]" placeholder="#" />
-                            <input type="text" placeholder="Title" value={newChapter.title} onChange={e => setNewChapter({...newChapter, title: e.target.value})} className="col-span-3 bg-[var(--surface-high)]/10 border-none rounded-xl p-3 text-xs text-[var(--on-surface)]" />
+                            <input type="number" value={newChapter.order} onChange={e => setNewChapter({...newChapter, order: parseInt(e.target.value) || 1})} className="bg-white/5 border-none rounded-xl p-3 text-xs text-center text-[var(--on-surface)] outline-none focus:ring-2 focus:ring-primary/30" placeholder="#" />
+                            <input type="text" placeholder="Title" value={newChapter.title} onChange={e => setNewChapter({...newChapter, title: e.target.value})} className="col-span-3 bg-white/5 border-none rounded-xl p-3 text-xs text-[var(--on-surface)] outline-none focus:ring-2 focus:ring-primary/30" />
                           </div>
-                          <textarea placeholder="Description" value={newChapter.description} onChange={e => setNewChapter({...newChapter, description: e.target.value})} className="w-full bg-[var(--surface-high)]/10 border-none rounded-xl p-3 text-xs resize-none text-[var(--on-surface)]" rows="2" />
+                          <textarea placeholder="Description" value={newChapter.description} onChange={e => setNewChapter({...newChapter, description: e.target.value})} className="w-full bg-white/5 border-none rounded-xl p-3 text-xs resize-none text-[var(--on-surface)]" rows="2" />
                           <div className="space-y-1">
                             <label className="text-[9px] font-bold text-primary/60 uppercase ml-1">Syllabus PDF (Required)</label>
                             <input type="file" accept="application/pdf" onChange={e => setNewChapter({...newChapter, pdfFile: e.target.files[0]})} className="text-[10px] text-slate-500 w-full" />

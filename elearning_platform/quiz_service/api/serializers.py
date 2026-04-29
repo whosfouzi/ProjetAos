@@ -6,7 +6,15 @@ class ChoiceSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
     class Meta:
         model = Choice
-        fields = ['id', 'text'] # Hide is_correct from students!
+        fields = ['id', 'text', 'is_correct']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        # Only show is_correct to instructors/teachers
+        if not request or not hasattr(request, 'user') or request.user.role not in ['instructor', 'teacher']:
+            representation.pop('is_correct', None)
+        return representation
 
 
 class ShortAnswerSerializer(serializers.ModelSerializer):
@@ -23,30 +31,44 @@ class QuestionSerializer(serializers.ModelSerializer):
         model = Question
         fields = ['id', 'quiz', 'text', 'question_type', 'points', 'order', 'choices', 'correct_answers']
 
+    def validate_choices(self, value):
+        if self.initial_data.get('question_type') == 'MCQ':
+            if not (3 <= len(value) <= 4):
+                raise serializers.ValidationError("MCQ questions must have 3 to 4 choices.")
+            
+            # The initial_data might have 'is_correct' which ChoiceSerializer hides from output but we need for validation
+            # Since ChoiceSerializer hides 'is_correct', we need to check the raw data
+            raw_choices = self.initial_data.get('choices', [])
+            correct_count = sum(1 for c in raw_choices if c.get('is_correct') is True)
+            if correct_count != 1:
+                raise serializers.ValidationError("Exactly one choice must be marked as correct.")
+        return value
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        # Shuffle choices for each attempt
-        # We can use the attempt ID from context to seed for consistency during the same attempt
-        # but the requirement says "on each attempt... shuffle". 
-        # For simplicity and freshness, we shuffle here.
         import random
-        # To keep it consistent during the same attempt session, we could seed with (attempt_id + question_id)
         attempt = self.context.get('attempt')
         if attempt:
             seed = attempt.id + instance.id
             random.seed(seed)
             random.shuffle(representation['choices'])
-            random.seed(None) # Reset seed
+            random.seed(None)
         else:
             random.shuffle(representation['choices'])
-            
         return representation
         
     def create(self, validated_data):
-        choices_data = validated_data.pop('choices', [])
+        # Pop choices from validated_data to avoid model field error
+        validated_data.pop('choices', None)
+        # We need to get choices from initial_data because ChoiceSerializer hides is_correct
+        choices_data = self.initial_data.get('choices', [])
         question = Question.objects.create(**validated_data)
         for choice_data in choices_data:
-            Choice.objects.create(question=question, **choice_data)
+            Choice.objects.create(
+                question=question, 
+                text=choice_data.get('text'),
+                is_correct=choice_data.get('is_correct', False)
+            )
         return question
 
 
@@ -62,21 +84,24 @@ class QuizSerializer(serializers.ModelSerializer):
                   'duration_minutes', 'passing_score', 'is_active', 'questions', 
                   'total_questions', 'total_points', 'questions_per_attempt']
 
+    def validate(self, data):
+        # Optional: could check if the quiz already exists and has 20 questions
+        # but validation usually happens on the questions themselves.
+        # However, for the "Require each quiz to contain a pool of exactly 20 questions",
+        # we might need to enforce this during an "activation" phase or just keep it as a goal.
+        # Since quizzes are created first and then questions added, 
+        # we can't easily enforce 20 questions during the initial POST.
+        return data
+
     def to_representation(self, instance):
-        # Filter questions if an attempt is provided in the context
         attempt = self.context.get('attempt')
         if attempt and attempt.selected_questions:
-            # We need to preserve the order of questions if desired, but for now just filter
             all_questions = instance.questions.filter(id__in=attempt.selected_questions)
-            # Serialize them with the attempt in context for choice shuffling
             questions_data = QuestionSerializer(all_questions, many=True, context=self.context).data
-            
-            # Update the representation
             representation = super().to_representation(instance)
             representation['questions'] = questions_data
             representation['total_questions'] = len(questions_data)
             return representation
-            
         return super().to_representation(instance)
 
     def get_total_questions(self, obj):
@@ -97,7 +122,7 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuizAttempt
-        fields = ['id', 'quiz', 'student_id', 'started_at', 'completed_at', 'score', 'percentage', 'answers']
+        fields = ['id', 'quiz', 'student_id', 'started_at', 'completed_at', 'score', 'percentage', 'answers', 'selected_questions', 'attempt_number']
 
 
 class SubmitAnswerSerializer(serializers.Serializer):

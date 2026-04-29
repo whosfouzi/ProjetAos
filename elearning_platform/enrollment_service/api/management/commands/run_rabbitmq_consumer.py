@@ -65,9 +65,23 @@ class Command(BaseCommand):
                         print(f"Chapter {chapter_id} marked as passed for User {user_id}")
                     
                     # 2. Recalculate Overall Course Completion
+                    import requests
+                    from django.conf import settings
+                    valid_chapter_ids = []
+                    try:
+                        res = requests.get(f"{settings.COURSE_SERVICE_URL}/api/courses/{course_id}/", timeout=5)
+                        if res.status_code == 200:
+                            valid_chapter_ids = res.json().get('valid_chapter_ids', [])
+                    except Exception as e:
+                        print(f"Failed to fetch valid chapters: {e}")
+
                     all_progress = Progress.objects.filter(student_id=user_id, course_id=course_id)
-                    completed_chapters = all_progress.filter(completed=True).count()
-                    total_chapters = all_progress.count()
+                    if isinstance(valid_chapter_ids, list):
+                        total_chapters = len(valid_chapter_ids)
+                        completed_chapters = all_progress.filter(completed=True, chapter_id__in=valid_chapter_ids).count()
+                    else:
+                        total_chapters = all_progress.count()
+                        completed_chapters = all_progress.filter(completed=True).count()
                     
                     if total_chapters > 0 and completed_chapters == total_chapters:
                         if enrollment.status != 'completed':

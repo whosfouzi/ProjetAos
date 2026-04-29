@@ -5,15 +5,37 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0',
+    port: 80,
+    strictPort: true,
+    allowedHosts: true,
+    hmr: {
+      clientPort: 3000
+    },
 
     proxy: {
-      '/api': {
-        target: 'http://traefik',
+      '/api/auth': {
+        target: 'http://auth-service:8001',
+        changeOrigin: true,
+        xfwd: true,
+      },
+      '/api/courses': {
+        target: 'http://course-service:8002',
+        changeOrigin: true,
+        xfwd: true,
+      },
+      '/api/enroll': {
+        target: 'http://enrollment-service:8003',
+        changeOrigin: true,
+        xfwd: true,
+      },
+      '/api/quizzes': {
+        target: 'http://quiz-service:8004',
         changeOrigin: true,
         xfwd: true,
       },
       '/media': {
-        target: 'http://traefik',
+        target: 'http://auth-service:8001',
         changeOrigin: true,
         xfwd: true,
       }

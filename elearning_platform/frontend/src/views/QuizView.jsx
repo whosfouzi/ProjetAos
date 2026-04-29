@@ -20,21 +20,27 @@ export default function QuizView({
   activeQuiz, activeAttempt, answers, setAnswers, quizResult,
   submitQuiz, userRole,
   selectedCourse, setView, fetchMyCourses,
-  setStudyMode
+  setStudyMode, selectQuiz
 }) {
   // Filter questions based on activeAttempt.selected_questions if available
   const allQuestions = activeQuiz.questions || [];
   const selectedQuestionIds = activeAttempt?.selected_questions || [];
   
   const questions = selectedQuestionIds.length > 0
-    ? allQuestions.filter(q => selectedQuestionIds.includes(q.id))
+    ? selectedQuestionIds.map(id => allQuestions.find(q => q.id === id)).filter(Boolean)
     : allQuestions;
     
   const total = questions.length;
   const [currentIdx, setCurrentIdx] = useState(0);
 
+  // Reset index when a new attempt is loaded
+  React.useEffect(() => {
+    setCurrentIdx(0);
+  }, [activeAttempt?.id]);
+
   const current = questions[currentIdx];
-  const progressPct = total > 0 ? Math.round(((currentIdx + 1) / total) * 100) : 0;
+  const answeredCount = questions.filter(q => answers[q.id]).length;
+  const progressPct = total > 0 ? Math.round((answeredCount / total) * 100) : 0;
   const selectedChoice = current ? answers[current.id] : null;
   const allAnswered = questions.every(q => answers[q.id]);
   const isLast = currentIdx === total - 1;
@@ -97,11 +103,28 @@ export default function QuizView({
              </div>
           )}
 
+          {!passed && activeAttempt?.attempt_number >= 2 && (
+             <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-red-500/5 border border-red-500/20 text-red-400 animate-in fade-in zoom-in duration-500">
+                <AlertCircle size={32} />
+                <div className="text-center">
+                  <p className="text-[10px] font-black uppercase tracking-widest mb-1">Final Assessment Status</p>
+                  <p className="text-sm font-light leading-relaxed">
+                    Maximum attempts (2/2) exhausted. <br/>
+                    <b className="font-bold">Mastery not achieved for this module.</b> <br/>
+                    Please review the syllabus and consult your instructor for guidance.
+                  </p>
+                </div>
+             </div>
+          )}
+
           <button
             onClick={() => {
               if (passed) {
                 setStudyMode(true);
                 setView('course-detail');
+              } else if (activeAttempt?.attempt_number < 2) {
+                // If failed but attempts remaining, trigger a fresh start
+                selectQuiz(activeQuiz.id);
               } else {
                 setView('course-detail');
                 fetchMyCourses();
@@ -110,10 +133,12 @@ export default function QuizView({
             className="w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs transition-all active:scale-95 shadow-2xl text-white"
             style={passed
               ? { background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)', boxShadow: '0 0 20px var(--primary-glow)' }
-              : { background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)', boxShadow: '0 0 20px var(--primary-glow)' }
+              : (!passed && activeAttempt?.attempt_number >= 2)
+                ? { background: 'var(--surface-high)', border: '1px solid var(--error)', color: 'var(--error)' }
+                : { background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)', boxShadow: '0 0 20px var(--primary-glow)' }
             }
           >
-            {passed ? 'Enter Study Mode' : (activeAttempt?.attempt_number >= 2 ? 'Return to Research' : 'Prepare for Retake')}
+            {passed ? 'Enter Study Mode' : (activeAttempt?.attempt_number >= 2 ? 'Return to Syllabus' : 'Prepare for Retake')}
           </button>
         </div>
       </div>
@@ -155,6 +180,9 @@ export default function QuizView({
                <h4 className="text-sm font-bold text-[var(--on-surface)]">{activeQuiz.title}</h4>
             </div>
             <div className="text-right">
+               <p className={`text-[10px] font-black uppercase tracking-widest ${activeAttempt?.attempt_number === 2 ? 'text-amber-500' : 'text-[var(--on-surface-variant)]'}`}>
+                  Attempt {activeAttempt?.attempt_number || 1} of 2
+               </p>
                <p className="text-[10px] text-primary font-black uppercase tracking-widest">Question {currentIdx + 1} of {total}</p>
                <p className="text-2xl font-black text-[var(--on-surface)]">{progressPct}%</p>
             </div>

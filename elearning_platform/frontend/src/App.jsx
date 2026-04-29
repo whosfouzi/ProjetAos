@@ -42,27 +42,27 @@ import AdminDashView from './views/AdminDashView.jsx';
 import AdminUserListView from './views/AdminUserListView.jsx';
 
 // ── Global Shell Component ──────────────────────────────────────────────
-const GlobalShell = ({ 
-  children, userRole, view, setView, searchQuery, setSearchQuery, 
-  setCatalogPage, theme, toggleTheme, dropdownRef, dropdownOpen, 
-  setDropdownOpen, username, avatarSrc, logout, 
-  message, msgType 
+const GlobalShell = ({
+  children, userRole, view, setView, searchQuery, setSearchQuery,
+  setCatalogPage, theme, toggleTheme, dropdownRef, dropdownOpen,
+  setDropdownOpen, username, avatarSrc, logout,
+  message, msgType
 }) => {
   return (
     <div className={`min-h-screen transition-colors duration-500 bg-[var(--bg-app)] text-[var(--on-surface)] font-body selection:bg-primary selection:text-on-primary`}>
       {/* Universal Navbar */}
-      <nav 
+      <nav
         className="fixed top-0 left-0 w-full z-[100] h-24 flex items-center justify-between px-12 bg-[var(--bg-app)]/80 backdrop-blur-2xl border-b border-white/5"
         style={{ WebkitBackdropFilter: 'blur(40px)' }}
       >
         <div className="flex items-center gap-16">
-          <div 
-            className="text-2xl font-black tracking-tighter text-primary uppercase cursor-pointer" 
+          <div
+            className="text-2xl font-black tracking-tighter text-primary uppercase cursor-pointer"
             onClick={() => setView(userRole === 'admin' ? 'admin-dash' : (userRole === 'instructor' || userRole === 'teacher') ? 'instructor-dash' : 'courses')}
           >
             Aura {userRole === 'admin' ? 'Nexus' : 'Scholar'}
           </div>
-          
+
           <div className="hidden lg:flex items-center gap-8">
             {userRole === 'admin' ? (
               <>
@@ -85,32 +85,16 @@ const GlobalShell = ({
         </div>
 
         <div className="flex items-center gap-8">
-          <div className="relative hidden md:block">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--on-surface-variant)]" />
-            <input 
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCatalogPage(1); // Reset pagination on new search
-                if (view !== 'courses' && view !== 'my-courses') {
-                  setView('courses'); // Auto-navigate to catalog when searching
-                }
-              }}
-              className="bg-[var(--surface-high)]/10 border border-white/5 rounded-full py-2.5 pl-10 pr-6 text-xs text-[var(--on-surface)] placeholder-slate-600 focus:outline-none focus:border-primary/50 transition-all w-64" 
-              placeholder="Query system repository..." 
-            />
-          </div>
-
           <div className="flex items-center gap-6 pl-6 border-l border-white/10">
             {/* Celestial Theme Toggle */}
-            <button 
+            <button
               onClick={toggleTheme}
               className="text-[var(--on-surface-variant)] hover:text-primary transition-all p-2 rounded-xl hover:bg-white/5 relative group"
               title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
               <span className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[200] pointer-events-none">
-                 Cycle to {theme === 'dark' ? 'Lumina' : 'Umbra'}
+                Cycle to {theme === 'dark' ? 'Lumina' : 'Umbra'}
               </span>
             </button>
 
@@ -118,9 +102,9 @@ const GlobalShell = ({
               <Bell size={20} />
               <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_var(--primary)]"></span>
             </button>
-            
+
             <div className="relative" ref={dropdownRef}>
-              <button 
+              <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-3 p-1 rounded-2xl hover:bg-white/5 transition-all group"
               >
@@ -137,24 +121,24 @@ const GlobalShell = ({
               {dropdownOpen && (
                 <div className="absolute right-0 mt-4 w-64 bg-[var(--surface)]/95 backdrop-blur-2xl rounded-3xl border border-white/5 shadow-3xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 z-[110]">
                   <div className="p-6 border-b border-white/5 bg-white/[0.02]">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-4">Identity Profile</p>
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
-                           {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" alt="" /> : <User size={24} className="text-primary" />}
-                        </div>
-                        <div>
-                           <p className="font-bold text-[var(--on-surface)] text-sm">{username}</p>
-                           <p className="text-[10px] text-slate-500 uppercase tracking-widest">{(userRole === 'instructor' || userRole === 'teacher') ? 'Instructor' : userRole}</p>
-                        </div>
-                     </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-4">Identity Profile</p>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
+                        {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" alt="" /> : <User size={24} className="text-primary" />}
+                      </div>
+                      <div>
+                        <p className="font-bold text-[var(--on-surface)] text-sm">{username}</p>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest">{(userRole === 'instructor' || userRole === 'teacher') ? 'Instructor' : userRole}</p>
+                      </div>
+                    </div>
                   </div>
                   <div className="p-2">
-                     <button onClick={() => { setView('profile'); setDropdownOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] hover:bg-white/5 transition-all">
-                        <User size={16} className="text-primary" /> Profile Settings
-                     </button>
-                     <button onClick={logout} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-400/10 transition-all">
-                        <LogOut size={16} /> Terminate Session
-                     </button>
+                    <button onClick={() => { setView('profile'); setDropdownOpen(false); }} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] hover:bg-white/5 transition-all">
+                      <User size={16} className="text-primary" /> Profile Settings
+                    </button>
+                    <button onClick={logout} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-400/10 transition-all">
+                      <LogOut size={16} /> Terminate Session
+                    </button>
                   </div>
                 </div>
               )}
@@ -184,19 +168,29 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [userId, setUserId] = useState(localStorage.getItem('user_id') || null);
   const [userRole, setUserRole] = useState(localStorage.getItem('user_role') || 'student');
-  const [view, setView] = useState(token ? 
-    (localStorage.getItem('view') || 
-     (localStorage.getItem('user_role') === 'instructor' || localStorage.getItem('user_role') === 'teacher' ? 'instructor-dash' : 
-      localStorage.getItem('user_role') === 'admin' ? 'admin-dash' : 'courses'))
+  const [view, setView] = useState(token ?
+    (localStorage.getItem('view') ||
+      (localStorage.getItem('user_role') === 'instructor' || localStorage.getItem('user_role') === 'teacher' ? 'instructor-dash' :
+        localStorage.getItem('user_role') === 'admin' ? 'admin-dash' : 'courses'))
     : 'login');
 
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(localStorage.getItem('username') || '');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('student'); // For registration
 
   const [courses, setCourses] = useState([]);
   const [myCourses, setMyCourses] = useState([]);
   const [instructorCourses, setInstructorCourses] = useState([]);
+
+  // LocalTunnel Bypass Helper
+  const apiFetch = (url, options = {}) => {
+    const headers = {
+      ...options.headers,
+      'Bypass-Tunnel-Reminder': 'true'
+    };
+    return fetch(url, { ...options, headers });
+  };
+
   const [selectedCourse, setSelectedCourse] = useState(() => {
     try {
       const saved = localStorage.getItem('selectedCourse');
@@ -216,13 +210,13 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  
+
   // Hierarchical Catalog Filter States
   const [catalogDomains, setCatalogDomains] = useState([]);
   const [catalogSpecializations, setCatalogSpecializations] = useState([]);
   const [selDomainId, setSelDomainId] = useState('');
   const [selSpecId, setSelSpecId] = useState('');
-  
+
   // Pagination States
   const [catalogPage, setCatalogPage] = useState(1);
   const [catalogTotalPages, setCatalogTotalPages] = useState(1);
@@ -256,8 +250,8 @@ function App() {
   });
   const [answers, setAnswers] = useState({});
   const [quizResult, setQuizResult] = useState(null);
-  const [lessonProgress, setLessonProgress] = useState([]);
-  
+  // chapterProgress is the primary state for student progression
+
   // Admin states
   const [adminStats, setAdminStats] = useState({ total_users: 0, students: 0, instructors: 0, total_courses: 0, total_enrollments: 0 });
   const [studentStats, setStudentStats] = useState({ total_students: 0, active_students: 0, inactive_students: 0, never_logged_in: 0, enrolled_students: 0 });
@@ -266,7 +260,7 @@ function App() {
   const [adminSearch, setAdminSearch] = useState('');
   const [adminEnrollmentSearch, setAdminEnrollmentSearch] = useState('');
   const [adminRoleFilter, setAdminRoleFilter] = useState('');
-  
+
   // Theme state
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
 
@@ -290,7 +284,7 @@ function App() {
   const [addingQuizToChapter, setAddingQuizToChapter] = useState(null);
   const [newQuiz, setNewQuiz] = useState({ title: '', description: '', passingScore: 70 });
   const [addingQuestionToQuiz, setAddingQuestionToQuiz] = useState(null);
-  const [newQuestion, setNewQuestion] = useState({ text: '', choices_attributes: [{text: '', is_correct: true}, {text: '', is_correct: false}] });
+  const [newQuestion, setNewQuestion] = useState({ text: '', choices: [{ text: '', is_correct: true }, { text: '', is_correct: false }, { text: '', is_correct: false }] });
   const [userProfile, setUserProfile] = useState(null);
   const [profilePicFile, setProfilePicFile] = useState(null);
 
@@ -362,13 +356,32 @@ function App() {
 
   useEffect(() => {
     if (token && !userProfile) {
-        // Slight delay to ensure state synchronization during login flow
-        const timer = setTimeout(() => {
-            fetchUserProfile(token);
-        }, 100);
-        return () => clearTimeout(timer);
+      // Slight delay to ensure state synchronization during login flow
+      const timer = setTimeout(() => {
+        fetchUserProfile(token);
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [token, userProfile]);
+
+  // Restore session data on refresh
+  useEffect(() => {
+    const isManagementView = ['course-detail', 'course-editor', 'course-roster'].includes(view);
+    if (token && isManagementView && selectedCourse) {
+      if (chapters.length === 0) {
+        fetchChapters(selectedCourse.id);
+        fetchQuizzes(token);
+      }
+      if (selectedCourse.enrollment_id) {
+        fetchChapterProgress(selectedCourse.enrollment_id);
+      }
+    }
+
+    // Also restore quizzes if in quiz-taking view
+    if (token && view === 'quiz-taking' && activeQuiz && quizzes.length === 0) {
+      fetchQuizzes(token);
+    }
+  }, [token, view, selectedCourse, activeQuiz]);
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -388,9 +401,12 @@ function App() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await apiFetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true'
+        },
         body: JSON.stringify({ username, password, role })
       });
       if (res.ok) {
@@ -408,9 +424,12 @@ function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true'
+        },
         body: JSON.stringify({ username, password })
       });
       if (res.ok) {
@@ -422,7 +441,7 @@ function App() {
         localStorage.setItem('user_id', data.user_id);
         localStorage.setItem('user_role', data.role);
 
-        showToast(`Welcome back, ${username}! Role: ${data.role}`);
+        showToast(`Welcome back, ${username}!`);
 
         if (data.role === 'instructor' || data.role === 'teacher') {
           setView('instructor-dash');
@@ -445,56 +464,73 @@ function App() {
 
   const fetchUserProfile = async (authToken) => {
     try {
-      const res = await fetch('/api/auth/profile/me/', {
-        headers: { 'Authorization': `Bearer ${authToken || token}` }
+      const res = await apiFetch('/api/auth/profile/me/', {
+        headers: {
+          'Authorization': `Bearer ${authToken || token}`,
+          'Bypass-Tunnel-Reminder': 'true'
+        }
       });
       if (res.ok) {
         const data = await res.json();
         setUserProfile(data);
         setBioInput(data.bio || '');
+        if (data.username) {
+          setUsername(data.username);
+          localStorage.setItem('username', data.username);
+        }
       }
     } catch {
       console.error("Failed to fetch profile");
     }
   };
 
-  const handleUpdateProfile = async () => {
+  const handleUpdateProfile = async (updates) => {
     const formData = new FormData();
-    formData.append('bio', bioInput);
+    formData.append('bio', updates?.bio !== undefined ? updates.bio : bioInput);
+    if (updates?.username) formData.append('username', updates.username);
+    if (updates?.email) formData.append('email', updates.email);
+
     if (profilePicFile) {
-        formData.append('profile_picture', profilePicFile);
+      formData.append('profile_picture', profilePicFile);
     }
 
     try {
-        const res = await fetch('/api/auth/profile/me/', {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-        if (res.ok) {
-            const data = await res.json();
-            setUserProfile(data);
-            showToast("Profile updated successfully!");
-            setProfilePicFile(null);
-        } else {
-            const errorData = await res.json();
-            // Handle nested error objects (like { profile_picture: ["Upload a valid image..."] })
-            const errorMsg = typeof errorData === 'object' 
-                ? Object.values(errorData).flat().join(', ') 
-                : (errorData.detail || "Failed to update profile.");
-            showToast(errorMsg, "error");
+      const res = await apiFetch('/api/auth/profile/me/', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserProfile(data);
+        if (data.username) {
+          setUsername(data.username);
+          localStorage.setItem('username', data.username);
         }
+        showToast("Profile updated successfully!");
+        setProfilePicFile(null);
+      } else {
+        const errorData = await res.json();
+        // Handle nested error objects (like { profile_picture: ["Upload a valid image..."] })
+        const errorMsg = typeof errorData === 'object'
+          ? Object.values(errorData).flat().join(', ')
+          : (errorData.detail || "Failed to update profile.");
+        showToast(errorMsg, "error");
+      }
     } catch {
-        showToast("Error connecting to server.", "error");
+      showToast("Error connecting to server.", "error");
     }
   };
 
   const fetchInstructorCourses = async (authToken) => {
     try {
-      const res = await fetch('/api/courses/?my_courses=true', {
-        headers: { 'Authorization': `Bearer ${authToken || token}` }
+      const res = await apiFetch('/api/courses/?my_courses=true', {
+        headers: {
+          'Authorization': `Bearer ${authToken || token}`,
+          'Bypass-Tunnel-Reminder': 'true'
+        }
       });
       if (res.ok) {
         const data = await res.json();
@@ -508,7 +544,7 @@ function App() {
   const fetchInstructorDashboardStats = async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/enroll/admin/stats/', {
+      const res = await apiFetch('/api/enroll/admin/stats/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -523,16 +559,16 @@ function App() {
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     const payload = {
-        title: newCourse.title,
-        description: newCourse.description,
-        specialization: newCourse.specialization
+      title: newCourse.title,
+      description: newCourse.description,
+      specialization: newCourse.specialization
     };
 
     const url = selectedCourse ? `/api/courses/${selectedCourse.id}/` : '/api/courses/';
     const method = selectedCourse ? 'PATCH' : 'POST';
 
     try {
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: method,
         headers: {
           'Content-Type': 'application/json',
@@ -564,7 +600,7 @@ function App() {
   const handleDeleteCourse = async (courseId) => {
     if (!window.confirm("Are you sure you want to permanently delete this course?")) return;
     try {
-      const res = await fetch(`/api/courses/${courseId}/`, {
+      const res = await apiFetch(`/api/courses/${courseId}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -584,7 +620,7 @@ function App() {
 
   const fetchCourseRoster = async (courseId) => {
     try {
-      const res = await fetch('/api/enroll/admin/enrollments/', {
+      const res = await apiFetch('/api/enroll/admin/enrollments/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -607,17 +643,17 @@ function App() {
     try {
       // Aggregate stats from multiple services
       const [authRes, courseRes, enrollRes, studentRes] = await Promise.all([
-        fetch('/api/auth/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/courses/admin/stats/', { headers: { 'Authorization': `Bearer ${token}` } }),
+        apiFetch('/api/auth/admin/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
+        apiFetch('/api/courses/admin/stats/', { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch('/api/enroll/admin/stats/', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/auth/admin/student-stats', { headers: { 'Authorization': `Bearer ${token}` } })
+        apiFetch('/api/auth/admin/student-stats', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
-      
+
       const stats = {};
       if (authRes.ok) Object.assign(stats, await authRes.json());
       if (courseRes.ok) Object.assign(stats, await courseRes.json());
       if (enrollRes.ok) Object.assign(stats, await enrollRes.json());
-      
+
       setAdminStats(stats);
 
       // Student-specific stats
@@ -641,8 +677,8 @@ function App() {
       if (adminSearch) params.append('search', adminSearch);
       if (adminRoleFilter) params.append('role', adminRoleFilter);
       if (adminInactiveFilter) params.append('inactive', 'true');
-      
-      const res = await fetch(`/api/auth/admin/users?${params.toString()}`, {
+
+      const res = await apiFetch(`/api/auth/admin/users?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -655,7 +691,7 @@ function App() {
 
   const fetchAdminEnrollments = async () => {
     try {
-      const res = await fetch('/api/enroll/admin/enrollments/', {
+      const res = await apiFetch('/api/enroll/admin/enrollments/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -668,7 +704,7 @@ function App() {
 
   const fetchInstructorEnrollments = async () => {
     try {
-      const res = await fetch('/api/enroll/admin/enrollments/', {
+      const res = await apiFetch('/api/enroll/admin/enrollments/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -681,7 +717,7 @@ function App() {
 
   const handleUpdateUserRole = async (userId, newRole) => {
     try {
-      const res = await fetch(`/api/auth/admin/users/${userId}`, {
+      const res = await apiFetch(`/api/auth/admin/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ role: newRole })
@@ -699,7 +735,7 @@ function App() {
   const handleDeleteUser = async (userId) => {
     if (!window.confirm("Permanently delete this user account?")) return;
     try {
-      const res = await fetch(`/api/auth/admin/users/${userId}`, {
+      const res = await apiFetch(`/api/auth/admin/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -715,7 +751,7 @@ function App() {
 
   const fetchAllowedSpecializations = async () => {
     try {
-      const res = await fetch('/api/courses/expertise/', {
+      const res = await apiFetch('/api/courses/expertise/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -740,17 +776,20 @@ function App() {
       params.append('page', catalogPage);
 
       const queryString = params.toString() ? `?${params.toString()}` : '';
-      const res = await fetch(`/api/courses/${queryString}`, {
-        headers: { 'Authorization': `Bearer ${authToken || token}` }
+      const res = await apiFetch(`/api/courses/${queryString}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken || token}`,
+          'Bypass-Tunnel-Reminder': 'true'
+        }
       });
       if (res.ok) {
         const data = await res.json();
         if (data.results) {
-           setCourses(data.results);
-           setCatalogTotalPages(Math.ceil(data.count / 12));
+          setCourses(data.results);
+          setCatalogTotalPages(Math.ceil(data.count / 12));
         } else {
-           setCourses(data);
-           setCatalogTotalPages(1);
+          setCourses(data);
+          setCatalogTotalPages(1);
         }
       } else {
         showToast("Session expired.", "error");
@@ -763,7 +802,7 @@ function App() {
 
   const fetchCatalogDomains = async () => {
     try {
-      const res = await fetch('/api/courses/domains/');
+      const res = await apiFetch('/api/courses/domains/');
       if (res.ok) {
         setCatalogDomains(await res.json());
       }
@@ -774,7 +813,7 @@ function App() {
 
   const fetchFilteredSpecs = async (domainId) => {
     try {
-      const res = await fetch(`/api/courses/specializations/?domain_id=${domainId}`);
+      const res = await apiFetch(`/api/courses/specializations/?domain_id=${domainId}`);
       if (res.ok) {
         setCatalogSpecializations(await res.json());
       }
@@ -785,8 +824,11 @@ function App() {
 
   const fetchMyCourses = async () => {
     try {
-      const res = await fetch('/api/enroll/enrollments/my_courses/', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await apiFetch('/api/enroll/enrollments/my_courses/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Bypass-Tunnel-Reminder': 'true'
+        }
       });
       if (res.ok) {
         const data = await res.json();
@@ -799,7 +841,7 @@ function App() {
 
   const fetchCourseDetail = async (id, enrollmentId = null) => {
     try {
-      const res = await fetch(`/api/courses/${id}/`);
+      const res = await apiFetch(`/api/courses/${id}/`);
       if (res.ok) {
         const data = await res.json();
         if (enrollmentId) data.enrollment_id = enrollmentId;
@@ -818,7 +860,7 @@ function App() {
 
   const fetchChapters = async (courseId) => {
     try {
-      const res = await fetch(`/api/courses/${courseId}/chapters/`);
+      const res = await apiFetch(`/api/courses/${courseId}/chapters/`);
       if (res.ok) {
         const data = await res.json();
         setChapters(data);
@@ -830,7 +872,7 @@ function App() {
 
   const fetchChapterProgress = async (enrollmentId) => {
     try {
-      const res = await fetch(`/api/enroll/enrollments/${enrollmentId}/progress/`, {
+      const res = await apiFetch(`/api/enroll/enrollments/${enrollmentId}/progress/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -844,7 +886,7 @@ function App() {
 
   const handleMarkChapterViewed = async (enrollmentId, chapterId) => {
     try {
-      const res = await fetch('/api/enroll/progress/mark_viewed/', {
+      const res = await apiFetch('/api/enroll/progress/mark_viewed/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -871,7 +913,7 @@ function App() {
     formData.append('course', courseId);
     if (newChapter.pdfFile) formData.append('pdf_file', newChapter.pdfFile);
     try {
-      const res = await fetch(`/api/courses/${courseId}/chapters/`, {
+      const res = await apiFetch(`/api/courses/${courseId}/chapters/`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -892,7 +934,7 @@ function App() {
   const handleDeleteChapter = async (courseId, chapterId) => {
     if (!window.confirm("Delete this chapter? This cannot be undone.")) return;
     try {
-      const res = await fetch(`/api/courses/chapters/${chapterId}/`, {
+      const res = await apiFetch(`/api/courses/chapters/${chapterId}/`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -913,7 +955,7 @@ function App() {
     formData.append('course', courseId);
     if (editChapterData.pdfFile) formData.append('pdf_file', editChapterData.pdfFile);
     try {
-      const res = await fetch(`/api/courses/chapters/${chapterId}/`, {
+      const res = await apiFetch(`/api/courses/chapters/${chapterId}/`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -934,7 +976,7 @@ function App() {
   const handleDeleteChapterPDF = async (courseId, chapterId) => {
     if (!window.confirm("Remove PDF from this chapter?")) return;
     try {
-      const res = await fetch(`/api/courses/chapters/${chapterId}/pdf/`, {
+      const res = await apiFetch(`/api/courses/chapters/${chapterId}/pdf/`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -949,7 +991,7 @@ function App() {
 
   const fetchQuizzes = async (authToken) => {
     try {
-      const res = await fetch('/api/quizzes/quizzes/', {
+      const res = await apiFetch('/api/quizzes/quizzes/', {
         headers: { 'Authorization': `Bearer ${authToken || token}` }
       });
       if (res.ok) {
@@ -963,33 +1005,56 @@ function App() {
 
   const selectQuiz = async (quizId) => {
     try {
-      const res = await fetch(`/api/quizzes/quizzes/${quizId}/`, {
+      const res = await apiFetch(`/api/quizzes/quizzes/${quizId}/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
         setActiveQuiz(data);
-        
+
+        let currentAttempt = null;
         let prefilledAnswers = {};
         try {
-          // Use the new dedicated endpoint for fetching the current student's attempt
-          const attemptRes = await fetch(`/api/quizzes/quizzes/${quizId}/my-attempt/`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (attemptRes.ok) {
-            const attempt = await attemptRes.json();
-            setActiveAttempt(attempt);
-            // Map answers (store as string keys for state, but choice IDs are integers)
-            attempt.answers.forEach(ans => {
-               prefilledAnswers[ans.question.toString()] = ans.selected_choice;
+          if (userRole === 'student') {
+            // 1. Attempt to start or resume a quiz attempt
+            const startRes = await apiFetch('/api/quizzes/attempts/start/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ quiz_id: quizId })
             });
-            // Update quiz result state immediately if an attempt exists
-            if (attempt.completed_at) {
+
+            if (startRes.ok) {
+              const startData = await startRes.json();
+              const detailRes = await apiFetch(`/api/quizzes/attempts/${startData.attempt_id}/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (detailRes.ok) currentAttempt = await detailRes.json();
+            } else {
+              const lastRes = await apiFetch(`/api/quizzes/quizzes/${quizId}/my-attempt/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (lastRes.ok) currentAttempt = await lastRes.json();
+            }
+          }
+
+          if (currentAttempt) {
+            setActiveAttempt(currentAttempt);
+            if (currentAttempt.answers) {
+              currentAttempt.answers.forEach(ans => {
+                prefilledAnswers[ans.question.toString()] = ans.selected_choice;
+              });
+            }
+
+            // If attempt is already completed (summary view)
+            if (currentAttempt.completed_at) {
               setQuizResult({
-                  score: attempt.percentage,
-                  passed: attempt.percentage >= data.passing_score,
-                  correct_answers: attempt.score,
-                  total_questions: data.questions_per_attempt || attempt.total_questions
+                score: currentAttempt.percentage,
+                passed: currentAttempt.percentage >= data.passing_score,
+                correct_answers: currentAttempt.score,
+                total_questions: data.questions_per_attempt || currentAttempt.total_questions
               });
             } else {
               setQuizResult(null);
@@ -998,7 +1063,8 @@ function App() {
             setActiveAttempt(null);
             setQuizResult(null);
           }
-        } catch(e) {
+        } catch (e) {
+          console.error("Quiz attempt error:", e);
           setQuizResult(null);
         }
 
@@ -1012,7 +1078,7 @@ function App() {
 
   const handleCreateQuiz = async (courseId, chapterId) => {
     try {
-      const res = await fetch('/api/quizzes/quizzes/', {
+      const res = await apiFetch('/api/quizzes/quizzes/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1034,7 +1100,8 @@ function App() {
         fetchQuizzes(token);
       } else {
         const err = await res.json();
-        showToast(err.detail || "Failed to create quiz.", "error");
+        const errorMessage = typeof err === 'object' ? Object.values(err).flat().join(', ') : (err.detail || "Failed to create quiz.");
+        showToast(errorMessage, "error");
       }
     } catch {
       showToast("Error creating quiz.", "error");
@@ -1043,7 +1110,7 @@ function App() {
 
   const handleAddQuestion = async (quizId) => {
     try {
-      const res = await fetch('/api/quizzes/questions/', {
+      const res = await apiFetch('/api/quizzes/questions/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1055,17 +1122,18 @@ function App() {
           question_type: 'MCQ',
           points: 1,
           order: 1,
-          choices: newQuestion.choices_attributes.filter(c => c.text !== '')
+          choices: newQuestion.choices.filter(c => c.text !== '')
         })
       });
       if (res.ok) {
         showToast("Question added successfully!");
-        setNewQuestion({ text: '', choices_attributes: [{text: '', is_correct: true}, {text: '', is_correct: false}] });
+        setNewQuestion({ text: '', choices: [{ text: '', is_correct: true }, { text: '', is_correct: false }, { text: '', is_correct: false }] });
         setAddingQuestionToQuiz(null);
         fetchQuizzes(token);
       } else {
         const err = await res.json();
-        showToast(err.detail || "Failed to add question.", "error");
+        const errorMessage = typeof err === 'object' ? Object.values(err).flat().join(', ') : (err.detail || "Failed to add question.");
+        showToast(errorMessage, "error");
       }
     } catch {
       showToast("Error adding question.", "error");
@@ -1074,47 +1142,36 @@ function App() {
 
   const submitQuiz = async () => {
     try {
-      const res = await fetch(`/api/quizzes/quizzes/${activeQuiz.id}/submit/`, {
+      const res = await apiFetch(`/api/quizzes/quizzes/${activeQuiz.id}/submit/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ answers })
+        body: JSON.stringify({ answers, attempt_id: activeAttempt?.id })
       });
       if (res.ok) {
         const data = await res.json();
         setQuizResult(data);
         showToast(`Quiz completed! Score: ${data.score}%`);
-        
-        // Instant sync with backend
-        fetchMyCourses(); 
+
+        // Instant sync with backend progress
+        fetchMyCourses();
         if (selectedCourse?.enrollment_id) {
-          fetchLessonProgress(selectedCourse.enrollment_id);
+          fetchChapterProgress(selectedCourse.enrollment_id);
         }
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || "Failed to submit quiz.", "error");
       }
     } catch {
       showToast("Error submitting quiz.", "error");
     }
   };
 
-  const fetchLessonProgress = async (enrollmentId) => {
-    try {
-      const res = await fetch(`/api/enroll/enrollments/${enrollmentId}/progress/`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setLessonProgress(data.progress);
-      }
-    } catch {
-      showToast("Error loading lesson progress.", "error");
-    }
-  };
-
   const handleMarkLessonComplete = async (enrollmentId, lessonId) => {
     try {
-      const res = await fetch('/api/enroll/progress/complete_lesson/', {
+      const res = await apiFetch('/api/enroll/progress/complete_lesson/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1123,7 +1180,7 @@ function App() {
         body: JSON.stringify({ enrollment_id: enrollmentId, lesson_id: lessonId })
       });
       if (res.ok) {
-        fetchLessonProgress(enrollmentId);
+        fetchChapterProgress(enrollmentId);
         fetchMyCourses();
         showToast("Lesson completed!");
       }
@@ -1135,7 +1192,7 @@ function App() {
 
   const enrollCourse = async (courseId) => {
     try {
-      const res = await fetch('/api/enroll/enrollments/', {
+      const res = await apiFetch('/api/enroll/enrollments/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1158,7 +1215,7 @@ function App() {
   const handleUnenroll = async (enrollmentId) => {
     if (!window.confirm("Are you sure you want to unenroll from this course? Your progress will be lost.")) return;
     try {
-      const res = await fetch(`/api/enroll/enrollments/${enrollmentId}/`, {
+      const res = await apiFetch(`/api/enroll/enrollments/${enrollmentId}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -1203,13 +1260,21 @@ function App() {
 
   if (view === 'login' || view === 'register') {
     return (
-      <LoginView
-        view={view} setView={setView}
-        username={username} setUsername={setUsername}
-        password={password} setPassword={setPassword}
-        role={role} setRole={setRole}
-        handleLogin={handleLogin} handleRegister={handleRegister}
-      />
+      <>
+        <LoginView
+          view={view} setView={setView}
+          username={username} setUsername={setUsername}
+          password={password} setPassword={setPassword}
+          role={role} setRole={setRole}
+          handleLogin={handleLogin} handleRegister={handleRegister}
+        />
+        {message && (
+          <div className={`toast ${msgType === 'error' ? 'toast-error' : 'toast-success'}`}>
+            {msgType === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
+            {message}
+          </div>
+        )}
+      </>
     );
   }
 
@@ -1269,6 +1334,7 @@ function App() {
           userRole={userRole}
           selectedCourse={selectedCourse}
           setView={setView}
+          selectQuiz={selectQuiz}
           fetchMyCourses={fetchMyCourses}
           setStudyMode={setStudyMode}
         />
@@ -1343,6 +1409,20 @@ function App() {
           enrollments={instructorEnrollments}
           selectedCourse={selectedCourse}
           setView={setView}
+          chapters={chapters}
+          quizzes={quizzes}
+          fetchChapters={fetchChapters}
+          fetchQuizzes={fetchQuizzes}
+          userProfile={userProfile}
+          username={username}
+          logout={logout}
+          dropdownRef={dropdownRef}
+          dropdownOpen={dropdownOpen}
+          setDropdownOpen={setDropdownOpen}
+          fetchCourseRoster={fetchCourseRoster}
+          fetchInstructorCourses={fetchInstructorCourses}
+          setNewCourse={setNewCourse}
+          setSelectedCourse={setSelectedCourse}
         />
       );
     }

@@ -220,7 +220,7 @@ export default function CoursesView({
                   {/* Content */}
                   <div className="flex-1 space-y-1.5">
                     <span className="text-[9px] font-bold text-[var(--on-surface-variant)] uppercase tracking-widest block">
-                      {course.specialization || 'General Studies'}
+                      {course.category || 'General Studies'}
                     </span>
                     <h3 className="font-bold text-base text-[var(--on-surface)] line-clamp-2 leading-snug group-hover:text-primary transition-colors">
                       {course.title}

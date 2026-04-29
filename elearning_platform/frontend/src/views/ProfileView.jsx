@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Bell, 
   Sliders, 
@@ -33,6 +33,13 @@ export default function ProfileView({
   fetchCourseRoster
 }) {
   const [activeSection, setActiveSection] = useState(initialSection);
+  const [editUsername, setEditUsername] = useState(username || '');
+  const [editEmail, setEditEmail] = useState(userProfile?.email || '');
+
+  useEffect(() => {
+    setEditUsername(username || '');
+    setEditEmail(userProfile?.email || '');
+  }, [username, userProfile]);
 
   const avatarSrc = (profilePicFile instanceof Blob)
     ? URL.createObjectURL(profilePicFile)
@@ -262,26 +269,26 @@ export default function ProfileView({
                         <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase tracking-widest text-primary/80 ml-2">Display Name</label>
                           <input
-                            className="w-full bg-[var(--surface-high)]/10 border border-white/5 rounded-2xl p-4 text-[var(--on-surface)] outline-none transition-all placeholder:text-slate-600 focus:ring-2 focus:ring-primary/40"
+                            className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-[var(--on-surface)] outline-none transition-all placeholder:text-slate-600 focus:ring-2 focus:ring-primary/40 focus:bg-white/10"
                             type="text"
-                            readOnly
-                            value={username}
+                            value={editUsername}
+                            onChange={(e) => setEditUsername(e.target.value)}
                           />
                         </div>
                         <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase tracking-widest text-primary/80 ml-2">Email Address</label>
                           <input
-                            className="w-full bg-[var(--surface-high)]/10 border border-white/5 rounded-2xl p-4 text-[var(--on-surface)] outline-none transition-all placeholder:text-slate-600 focus:ring-2 focus:ring-primary/40"
+                            className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-[var(--on-surface)] outline-none transition-all placeholder:text-slate-600 focus:ring-2 focus:ring-primary/40 focus:bg-white/10"
                             type="email"
-                            readOnly
-                            value={userProfile?.email || ''}
+                            value={editEmail}
+                            onChange={(e) => setEditEmail(e.target.value)}
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-primary/80 ml-2">Biography</label>
                         <textarea
-                          className="w-full bg-[var(--surface-high)]/10 border border-white/5 rounded-2xl p-4 text-[var(--on-surface)] outline-none transition-all placeholder:text-slate-600 focus:ring-2 focus:ring-primary/40 resize-none font-light"
+                          className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-[var(--on-surface)] outline-none transition-all placeholder:text-slate-600 focus:ring-2 focus:ring-primary/40 focus:bg-white/10 resize-none font-light"
                           rows={4}
                           value={bioInput}
                           onChange={e => setBioInput(e.target.value)}
@@ -296,7 +303,7 @@ export default function ProfileView({
                       Discard
                     </button>
                     <button
-                      onClick={handleUpdateProfile}
+                      onClick={() => handleUpdateProfile({ username: editUsername, email: editEmail, bio: bioInput })}
                       className="px-10 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all bg-gradient-to-r from-primary to-secondary text-white shadow-xl shadow-primary/10 hover:scale-105 active:scale-95"
                     >
                       Save Configuration

@@ -154,9 +154,27 @@ class AdminEnrollmentListView(APIView):
             
             # Calculate progress using student/course ID for persistence
             progress_items = Progress.objects.filter(student_id=enroll.student_id, course_id=enroll.course_id)
-            total = progress_items.count()
-            completed = progress_items.filter(completed=True).count()
+            valid_chapter_ids = course_info.get('valid_chapter_ids', [])
+            
+            if isinstance(valid_chapter_ids, list):
+                total = len(valid_chapter_ids)
+                completed = progress_items.filter(completed=True, chapter_id__in=valid_chapter_ids).count()
+            else:
+                total = progress_items.count()
+                completed = progress_items.filter(completed=True).count()
+                
             percentage = round((completed / total * 100), 1) if total > 0 else 0
+            percentage = min(100, percentage)
+            
+            # Self-healing
+            if percentage == 100 and enroll.status != 'completed':
+                enroll.status = 'completed'
+                enroll.completed_at = timezone.now()
+                enroll.save()
+            elif percentage < 100 and enroll.status == 'completed':
+                enroll.status = 'active'
+                enroll.completed_at = None
+                enroll.save()
             
             data.append({
                 "id": enroll.id,
@@ -290,9 +308,31 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
  
                     # Progress linked to student/course ID for persistence
                     progress = Progress.objects.filter(student_id=enrollment.student_id, course_id=enrollment.course_id)
-                    completed = progress.filter(completed=True).count()
-                    total = progress.count()
-                    course['progress_percentage'] = round((completed / total * 100), 2) if total > 0 else 0
+                    valid_chapter_ids = course.get('valid_chapter_ids', [])
+                    
+                    if isinstance(valid_chapter_ids, list):
+                        total = len(valid_chapter_ids)
+                        completed = progress.filter(completed=True, chapter_id__in=valid_chapter_ids).count()
+                    else:
+                        total = progress.count()
+                        completed = progress.filter(completed=True).count()
+                        
+                    pct = round((completed / total * 100), 2) if total > 0 else 0
+                    course['progress_percentage'] = min(100, pct)
+
+                    # Self-healing: if 100% completed but status not updated, fix it
+                    if course['progress_percentage'] == 100 and enrollment.status != 'completed':
+                        enrollment.status = 'completed'
+                        enrollment.completed_at = timezone.now()
+                        enrollment.save()
+                        course['status'] = 'completed'
+                    elif course['progress_percentage'] < 100 and enrollment.status == 'completed':
+                        enrollment.status = 'active'
+                        enrollment.completed_at = None
+                        enrollment.save()
+                        course['status'] = 'active'
+                    else:
+                        course['status'] = enrollment.status
 
                     courses_data.append(course)
             except Exception:
@@ -345,6 +385,31 @@ class ProgressViewSet(viewsets.ModelViewSet):
         except Enrollment.DoesNotExist:
             return Response({'error': 'Enrollment not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Enforce sequential unlocking
+        valid_chapter_ids = []
+        try:
+            course_res = requests.get(
+                f"{settings.COURSE_SERVICE_URL}/api/courses/{enrollment.course_id}/",
+                headers={'Authorization': request.headers.get('Authorization', '')},
+                timeout=5
+            )
+            if course_res.status_code == 200:
+                valid_chapter_ids = course_res.json().get('valid_chapter_ids', [])
+        except Exception as e:
+            logger.error(f"Failed to fetch course details for progress locking check: {e}")
+
+        if valid_chapter_ids and int(chapter_id) in valid_chapter_ids:
+            ch_idx = valid_chapter_ids.index(int(chapter_id))
+            if ch_idx > 0:
+                prev_ch_id = valid_chapter_ids[ch_idx - 1]
+                prev_progress = Progress.objects.filter(
+                    student_id=request.user.id, 
+                    course_id=enrollment.course_id, 
+                    chapter_id=prev_ch_id
+                ).first()
+                if not prev_progress or not prev_progress.completed:
+                    return Response({'error': 'Complete previous chapters to unlock'}, status=status.HTTP_403_FORBIDDEN)
+
         progress, created = Progress.objects.get_or_create(
             student_id=request.user.id,
             course_id=enrollment.course_id,
@@ -365,9 +430,15 @@ class ProgressViewSet(viewsets.ModelViewSet):
         logger.info(f"Student {request.user.id} viewed chapter {chapter_id}. (Quiz exists: {has_quiz})")
 
         # Recalculate overall course progress using persistent student/course IDs
+        # We already fetched valid_chapter_ids earlier
         all_progress = Progress.objects.filter(student_id=request.user.id, course_id=enrollment.course_id)
-        completed_count = all_progress.filter(completed=True).count()
-        total_count = all_progress.count()
+        if isinstance(valid_chapter_ids, list):
+            total_count = len(valid_chapter_ids)
+            completed_count = all_progress.filter(completed=True, chapter_id__in=valid_chapter_ids).count()
+        else:
+            total_count = all_progress.count()
+            completed_count = all_progress.filter(completed=True).count()
+            
         percentage = round((completed_count / total_count * 100), 2) if total_count > 0 else 0
 
         # Mark enrollment as completed if 100%
@@ -399,6 +470,30 @@ class ProgressViewSet(viewsets.ModelViewSet):
         except Enrollment.DoesNotExist:
             return Response({'error': 'Enrollment not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        valid_chapter_ids = []
+        try:
+            course_res = requests.get(
+                f"{settings.COURSE_SERVICE_URL}/api/courses/{enrollment.course_id}/",
+                headers={'Authorization': request.headers.get('Authorization', '')},
+                timeout=5
+            )
+            if course_res.status_code == 200:
+                valid_chapter_ids = course_res.json().get('valid_chapter_ids', [])
+        except Exception as e:
+            pass
+
+        if valid_chapter_ids and int(lesson_id) in valid_chapter_ids:
+            ch_idx = valid_chapter_ids.index(int(lesson_id))
+            if ch_idx > 0:
+                prev_ch_id = valid_chapter_ids[ch_idx - 1]
+                prev_progress = Progress.objects.filter(
+                    student_id=request.user.id, 
+                    course_id=enrollment.course_id, 
+                    chapter_id=prev_ch_id
+                ).first()
+                if not prev_progress or not prev_progress.completed:
+                    return Response({'error': 'Complete previous chapters to unlock'}, status=status.HTTP_403_FORBIDDEN)
+
         progress, _ = Progress.objects.get_or_create(
             student_id=request.user.id,
             course_id=enrollment.course_id,
@@ -410,9 +505,15 @@ class ProgressViewSet(viewsets.ModelViewSet):
         progress._recalculate_completion()
         progress.save()
 
+
         all_progress = Progress.objects.filter(student_id=request.user.id, course_id=enrollment.course_id)
-        completed = all_progress.filter(completed=True).count()
-        total = all_progress.count()
+        if valid_chapter_ids:
+            total = len(valid_chapter_ids)
+            completed = all_progress.filter(completed=True, chapter_id__in=valid_chapter_ids).count()
+        else:
+            total = all_progress.count()
+            completed = all_progress.filter(completed=True).count()
+            
         percentage = round((completed / total * 100), 2) if total > 0 else 0
 
         return Response({

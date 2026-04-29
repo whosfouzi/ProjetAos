@@ -147,7 +147,7 @@ export default function MyCoursesView({
             {myCourses.length > 0 && (
               <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {myCourses.map((course, i) => {
-                  const pct = course.progress_percentage || 0;
+                  const pct = Math.round(course.progress_percentage || 0);
                   const isDone = course.status === 'completed';
                   return (
                     <div key={course.id} className="glass-panel rounded-[3rem] p-10 hover:bg-white/[0.05] transition-all duration-500 flex flex-col border border-white/5 shadow-2xl group relative overflow-hidden">
