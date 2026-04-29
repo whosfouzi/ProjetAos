@@ -6,7 +6,7 @@ services:
       - "--providers.file.filename=/etc/traefik/dynamic.yml"
       - "--entrypoints.web.address=:80"
       - "--providers.consulcatalog=true"
-      - "--providers.consulcatalog.endpoint.address=consul:8500"
+      - "--providers.consulcatalog.endpoint.address=${CORE_IP:-consul}:8500"
       - "--providers.consulcatalog.exposedByDefault=false"
     ports:
       - "8000:80"
@@ -100,10 +100,10 @@ services:
       - PORT=8003
       - CONSUL_HOST=${CORE_IP:-consul}
       - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
-      - SERVICE_IP=${SERVICE_IP:-enrollment-service}
+      - SERVICE_IP=${ENROLL_IP:-enrollment-service}
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - COURSE_SERVICE_URL=http://${CORE_IP:-course-service}:8002
-      - QUIZ_SERVICE_URL=http://${WORKER_IP:-quiz-service}:8004
+      - QUIZ_SERVICE_URL=http://${QUIZ_IP:-quiz-service}:8004
       - PYTHONUNBUFFERED=1
     labels:
       - "traefik.enable=true"
@@ -116,6 +116,10 @@ services:
       - "traefik.consul_registration.service.address=enrollment-service"
     networks:
       - elearning_net
+    depends_on:
+      - traefik
+      - consul
+      - rabbitmq
 
   enrollment-worker:
     build: ./enrollment_service
@@ -131,14 +135,16 @@ services:
       - PYTHONUNBUFFERED=1
     networks:
       - elearning_net
-
+    depends_on:
+      - rabbitmq
+      - consul
 
   notification-service:
     build: ./notification_service
     volumes:
       - ./notification_service:/app
     environment:
-      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
     networks:
       - elearning_net
     depends_on:
@@ -167,16 +173,14 @@ services:
       - ./quiz_service/db.sqlite3:/app/db.sqlite3
     ports:
       - "8004:8004"
-
     env_file: ./quiz_service/.env
     environment:
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
       - CONSUL_HOST=${CORE_IP:-consul}
-      - SERVICE_IP=${SERVICE_IP:-quiz-service}
+      - SERVICE_IP=${QUIZ_IP:-quiz-service}
       - COURSE_SERVICE_URL=http://${CORE_IP:-course-service}:8002
       - PYTHONUNBUFFERED=1
-
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.quiz.rule=PathPrefix(`/api/quizzes`)"
@@ -189,7 +193,10 @@ services:
       - "traefik.consul_registration.service.address=quiz-service"
     networks:
       - elearning_net
-
+    depends_on:
+      - traefik
+      - consul
+      - rabbitmq
 
   quiz-worker:
     build: ./quiz_service
@@ -205,8 +212,10 @@ services:
       - PYTHONUNBUFFERED=1
     networks:
       - elearning_net
+    depends_on:
+      - rabbitmq
+      - consul
 
 networks:
-
   elearning_net:
     driver: bridge
