@@ -200,6 +200,7 @@ services:
     command: python manage.py run_rabbitmq_consumer
     environment:
       - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
+      - CONSUL_HOST=${CORE_IP:-consul}
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - PYTHONUNBUFFERED=1
     networks:
