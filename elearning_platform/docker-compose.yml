@@ -168,6 +168,8 @@ services:
     volumes:
       - ./quiz_service:/app
       - ./quiz_service/db.sqlite3:/app/db.sqlite3
+    ports:
+      - "8004:8004"
 
     env_file: ./quiz_service/.env
     environment:
