@@ -151,9 +151,6 @@ services:
       - /app/node_modules
     ports:
       - "3000:80"
-    extra_hosts:
-      - "enrollment-service:${WORKER_IP:-127.0.0.1}"
-      - "quiz-service:${WORKER_IP:-127.0.0.1}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
