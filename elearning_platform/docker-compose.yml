@@ -127,15 +127,13 @@ services:
     env_file: ./enrollment_service/.env
     command: python manage.py run_rabbitmq_consumer
     environment:
-      - CONSUL_HOST=consul
+      - CONSUL_HOST=${CORE_IP:-consul}
       - RABBITMQ_HOST=${CORE_IP:-rabbitmq}
       - SECRET_KEY=django-insecure-test-key-shared-1234567890
       - PYTHONUNBUFFERED=1
     networks:
       - elearning_net
-    depends_on:
-      - consul
-      - rabbitmq
+
 
   notification-service:
     build: ./notification_service
@@ -190,9 +188,7 @@ services:
       - "traefik.consul_registration.service.address=quiz-service"
     networks:
       - elearning_net
-    depends_on:
-      - consul
-      - rabbitmq
+
 
   quiz-worker:
     build: ./quiz_service
@@ -207,8 +203,6 @@ services:
       - PYTHONUNBUFFERED=1
     networks:
       - elearning_net
-    depends_on:
-      - rabbitmq
 
 networks:
 
