@@ -68,7 +68,7 @@ def register_consul():
     
     while True:
         try:
-            c = consul.Consul(host=consul_host, port=8500, socket_timeout=2)
+            c = consul.Consul(host=consul_host, port=8500)
             c.agent.service.register(
                 'auth-service',
                 service_id=f'auth_service_{port}',
@@ -82,7 +82,8 @@ def register_consul():
             )
             print(f"Successfully registered 'auth-service' with Consul at {consul_host}:8500")
             break
-        except Exception:
+        except Exception as e:
+            print(f"Error registering with Consul: {e}")
             print(f"Retrying Consul registration in 10s... ({consul_host}:8500)")
             time.sleep(10)
 

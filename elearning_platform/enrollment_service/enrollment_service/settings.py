@@ -100,7 +100,7 @@ def register_consul():
     
     while True:
         try:
-            c = consul.Consul(host=consul_host, port=8500, socket_timeout=2)
+            c = consul.Consul(host=consul_host, port=8500)
             c.agent.service.register(
                 'enrollment-service',
                 service_id=f'enrollment_service_{port}',
