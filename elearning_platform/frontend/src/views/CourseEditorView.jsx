@@ -389,7 +389,9 @@ export default function CourseEditorView({
                               <div className="text-[10px] font-bold text-[var(--on-surface-variant)] uppercase tracking-widest">Chapters</div>
                            </div>
                            <div className="flex-1 text-center p-4 rounded-2xl bg-[var(--surface-high)]/10">
-                              <div className="text-2xl font-bold text-[var(--on-surface)]">{quizzes.length}</div>
+                              <div className="text-2xl font-bold text-[var(--on-surface)]">
+                                 {quizzes.filter(q => q && chapters.some(ch => String(ch.id) === String(q.chapter_id || q.chapter || ''))).length}
+                              </div>
                               <div className="text-[10px] font-bold text-[var(--on-surface-variant)] uppercase tracking-widest">Quizzes</div>
                            </div>
                         </div>
