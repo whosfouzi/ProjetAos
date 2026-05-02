@@ -71,6 +71,25 @@ class QuestionSerializer(serializers.ModelSerializer):
             )
         return question
 
+    def update(self, instance, validated_data):
+        validated_data.pop('choices', None)
+        instance.text = validated_data.get('text', instance.text)
+        instance.question_type = validated_data.get('question_type', instance.question_type)
+        instance.points = validated_data.get('points', instance.points)
+        instance.order = validated_data.get('order', instance.order)
+        instance.save()
+        
+        choices_data = self.initial_data.get('choices', [])
+        if choices_data:
+            Choice.objects.filter(question=instance).delete()
+            for choice_data in choices_data:
+                Choice.objects.create(
+                    question=instance, 
+                    text=choice_data.get('text'),
+                    is_correct=choice_data.get('is_correct', False)
+                )
+        return instance
+
 
 class QuizSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, read_only=True)

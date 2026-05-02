@@ -162,17 +162,41 @@ const GlobalShell = ({
   );
 };
 
+export function useParams() {
+  const [params, setParams] = useState({});
+  useEffect(() => {
+    const parse = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/edit-course/')) {
+        const courseId = hash.replace('#/edit-course/', '');
+        setParams({ courseId });
+      } else {
+        setParams({});
+      }
+    };
+    parse();
+    window.addEventListener('hashchange', parse);
+    return () => window.removeEventListener('hashchange', parse);
+  }, []);
+  return params;
+}
+
 function App() {
 
 
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [userId, setUserId] = useState(localStorage.getItem('user_id') || null);
   const [userRole, setUserRole] = useState(localStorage.getItem('user_role') || 'student');
-  const [view, setView] = useState(token ?
-    (localStorage.getItem('view') ||
+  const [view, setView] = useState(() => {
+    if (!token) return 'login';
+    const hash = window.location.hash;
+    if (hash.startsWith('#/edit-course/')) {
+      return 'course-editor';
+    }
+    return localStorage.getItem('view') ||
       (localStorage.getItem('user_role') === 'instructor' || localStorage.getItem('user_role') === 'teacher' ? 'instructor-dash' :
-        localStorage.getItem('user_role') === 'admin' ? 'admin-dash' : 'courses'))
-    : 'login');
+        localStorage.getItem('user_role') === 'admin' ? 'admin-dash' : 'courses');
+  });
 
   const [username, setUsername] = useState(localStorage.getItem('username') || '');
   const [password, setPassword] = useState('');
@@ -1252,6 +1276,26 @@ function App() {
         if (adminSubView === 'enrollments') fetchAdminEnrollments();
       } else if (view === 'course-editor') {
         fetchAllowedSpecializations();
+        const hash = window.location.hash;
+        if (hash.startsWith('#/edit-course/')) {
+          const courseId = hash.replace('#/edit-course/', '');
+          if (courseId && (!selectedCourse || String(selectedCourse.id) !== courseId)) {
+            const fetchCourseAndChapters = async () => {
+              try {
+                const res = await apiFetch(`/api/courses/${courseId}/`);
+                if (res.ok) {
+                  const data = await res.json();
+                  setSelectedCourse(data);
+                  fetchChapters(courseId);
+                  if (token) fetchQuizzes(token);
+                }
+              } catch (e) {
+                console.error("Failed to load course detail for editing", e);
+              }
+            };
+            fetchCourseAndChapters();
+          }
+        }
       } else if (view === 'quizzes') {
         fetchQuizzes(token);
       }
@@ -1368,6 +1412,7 @@ function App() {
       return (
         <CourseEditorView
           selectedCourse={selectedCourse}
+          setSelectedCourse={setSelectedCourse}
           newCourse={newCourse}
           setNewCourse={setNewCourse}
           handleSaveCourse={handleSaveCourse}

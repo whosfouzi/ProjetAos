@@ -25,8 +25,6 @@ class QuizViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = Quiz.objects.filter(is_active=True)
-        if user.role == 'instructor':
-            queryset = Quiz.objects.filter(created_by=user.id)
             
         chapter_id = self.request.query_params.get('chapter_id')
         if chapter_id:
