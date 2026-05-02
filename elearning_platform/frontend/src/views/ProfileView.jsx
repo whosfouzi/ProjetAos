@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   Mail,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Plus
 } from 'lucide-react';
 
 /**
@@ -85,44 +86,44 @@ export default function ProfileView({
       <div className="fixed bottom-[-5%] left-[-5%] w-[30%] h-[30%] bg-secondary/5 rounded-full blur-[100px] -z-10" />
  
       <div className="flex flex-1 pt-8">
-        {/* SideNavBar — Only for Instructor */}
         {userRole === 'instructor' && (
-          <aside className="h-[calc(100vh-5rem)] w-72 sticky top-20 flex flex-col bg-[var(--bg-app)] shadow-[1px_0_0_0_rgba(255,255,255,0.05)] z-40 hidden md:flex py-8">
-            <div className="px-6 mb-10">
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-[var(--surface-high)]/10 border border-white/5">
-                {avatarSrc ? (
-                  <img className="h-10 w-10 rounded-full object-cover" src={avatarSrc} alt={username} />
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                     <span className="material-symbols-outlined text-primary">person</span>
+          <aside className="h-[calc(100vh-5rem)] w-72 sticky top-20 flex flex-col bg-[var(--bg-app)] shadow-[1px_0_0_0_rgba(255,255,255,0.05)] z-40 hidden md:flex py-8 justify-between">
+            <div>
+              <div className="px-6 mb-10">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-[var(--surface-high)]/10 border border-white/5">
+                  {avatarSrc ? (
+                    <img className="h-10 w-10 rounded-full object-cover" src={avatarSrc} alt={username} />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                       <span className="material-symbols-outlined text-primary">person</span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-bold text-[var(--on-surface)] truncate max-w-[120px]">{username}</p>
+                    <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-widest">Lead Instructor</p>
                   </div>
-                )}
-                <div>
-                  <p className="text-sm font-bold text-[var(--on-surface)] truncate max-w-[120px]">{username}</p>
-                  <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-widest">Lead Educator</p>
                 </div>
               </div>
+              <nav className="flex-1 space-y-1">
+                <a onClick={() => setView('instructor-dash')} className="text-[var(--on-surface-variant)] px-6 py-4 opacity-70 flex items-center gap-4 font-body text-sm uppercase tracking-widest hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
+                  <LayoutGrid size={18} /> Home
+                </a>
+                <a onClick={() => { setSelectedCourse(null); setNewCourse({ title: '', description: '', specialization: '' }); setView('course-editor'); }} className="text-[var(--on-surface-variant)] px-6 py-4 opacity-70 flex items-center gap-4 font-body text-sm uppercase tracking-widest hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
+                  <BookOpen size={18} /> Curriculum
+                </a>
+                <div className="px-6 mt-6">
+                  <button onClick={() => { setSelectedCourse(null); setNewCourse({ title: '', description: '', specialization: '' }); setView('course-editor'); }} className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all select-none">
+                    <Plus size={16} /> Create Course
+                  </button>
+                </div>
+              </nav>
             </div>
-            <nav className="flex-1 space-y-1">
-              <a onClick={() => setView('instructor-dash')} className="text-[var(--on-surface-variant)] px-6 py-4 opacity-70 flex items-center gap-4 font-body text-sm uppercase tracking-widest hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
-                <LayoutGrid size={18} /> Home
-              </a>
-              <a onClick={() => fetchCourseRoster(null)} className="text-[var(--on-surface-variant)] px-6 py-4 opacity-70 flex items-center gap-4 font-body text-sm uppercase tracking-widest hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
-                <Users size={18} /> Students
-              </a>
-              <a onClick={() => { setSelectedCourse(null); setNewCourse({ title: '', description: '', specialization: '' }); setView('course-editor'); }} className="text-[var(--on-surface-variant)] px-6 py-4 opacity-70 flex items-center gap-4 font-body text-sm uppercase tracking-widest hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
-                <BookOpen size={18} /> Curriculum
-              </a>
-              <a className="text-[var(--on-surface-variant)] px-6 py-4 opacity-70 flex items-center gap-4 font-body text-sm uppercase tracking-widest hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
-                <Video size={18} /> Live Sessions
-              </a>
-              <a className="text-[var(--on-surface-variant)] px-6 py-4 opacity-70 flex items-center gap-4 font-body text-sm uppercase tracking-widest hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
-                <ClipboardList size={18} /> Assignments
-              </a>
-              <a onClick={() => setActiveSection('settings')} className="text-[var(--on-surface-variant)] px-6 py-4 opacity-70 flex items-center gap-4 font-body text-sm uppercase tracking-widest hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
-                <Sliders size={18} /> Settings
-              </a>
-            </nav>
+
+            <div className="px-6 pb-4">
+              <button onClick={() => logout()} className="w-full flex items-center gap-4 px-6 py-4 text-[var(--on-surface-variant)] opacity-70 hover:text-red-400 hover:bg-white/5 font-body text-sm uppercase tracking-widest transition-all rounded-xl cursor-pointer">
+                <LogOut size={18} /> Logout
+              </button>
+            </div>
           </aside>
         )}
  
