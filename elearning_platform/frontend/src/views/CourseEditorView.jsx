@@ -382,6 +382,17 @@ export default function CourseEditorView({
                            </div>
                         </div>
 
+                        {/* Course Identity & Stats */}
+                        <div className="space-y-4 p-5 rounded-[2rem] bg-[var(--surface-low)] border border-white/5 mb-4">
+                           <div className="space-y-1">
+                              <div className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Course Architecture</div>
+                              <div className="text-sm font-bold text-[var(--on-surface)] truncate">{newCourse.title || 'Untitled Course'}</div>
+                              <div className="text-xs text-[var(--on-surface-variant)]">
+                                 {allowedSpecializations.find(s => String(s.id) === String(newCourse.specialization))?.name || 'No field selected'}
+                              </div>
+                           </div>
+                        </div>
+
                         {/* Quick Stats */}
                         <div className="flex gap-4 p-4 rounded-[2rem] bg-[var(--surface-low)] border border-white/5">
                            <div className="flex-1 text-center p-4 rounded-2xl bg-[var(--surface-high)]/10">
